@@ -41,17 +41,20 @@ float sma = 0;
 #define ADC0_AVERAGING 1
 #define ANALOG_BUFFER_SIZE 200
 
-DMAMEM static volatile uint16_t __attribute__((aligned(32))) adc0_buf[ANALOG_BUFFER_SIZE] = {}; // buffer 1...
+
 
 ADC *adc = new ADC(); // adc object
 DMAChannel adc0_dma;
 // References for ISRs...
 // extern void adc0_dma_isr(void);
 
-volatile uint8_t adc_data[ANALOG_BUFFER_SIZE] = {}; // ADC_0 9-bit resolution for differential - sign + 8 bit
+//const uint32_t ANALOG_BUFFER_SIZE = 200;
+DMAMEM static volatile uint16_t __attribute__((aligned(32))) adc0_buf[ANALOG_BUFFER_SIZE]; // buffer 1...
+volatile uint8_t adc_data[ANALOG_BUFFER_SIZE];// ADC_0 9-bit resolution for differential - sign + 8 bit
 volatile uint16_t value_buffer[25] = {};
 // volatile int value_peak[ANALOG_BUFFER_SIZE];
 volatile boolean adc0_busy = false;
+//unsigned int freq = 400000;         // PDB frequency
 unsigned int freq = 400000;         // PDB frequency
 volatile int adc0Value = 0;         // analog value
 volatile int analogBufferIndex = 0; // analog buffer pointer
@@ -117,6 +120,9 @@ void checkModbus();
 
 void setup()
 {
+  Serial.begin(9600);
+  Serial.println("Starting");
+
   InitVariables();
   // initialize LEDs and I/O
 
@@ -164,7 +170,7 @@ void setup()
 
   // initialize filters
   pinMode(FILTER_PIN, OUTPUT);
-  digitalWriteFast(FILTER_PIN, LOW);
+  digitalWrite(FILTER_PIN, LOW);
   filterOnOff.attach(FILTER_PIN);
   filterOnOff.interval(filterOn);
 
@@ -194,12 +200,12 @@ void setup()
 
   ///// ADC0 in differential mode with PGA for signal from photodiode ////
 
-  pinMode(A10, INPUT_DISABLE); // analog input P differential for PGA
-  pinMode(A11, INPUT_DISABLE); // analog input N differential for PGA
+  pinMode(ANALOG_INPUT, INPUT_DISABLE); // analog input P differential for PGA
+  //pinMode(A11, INPUT); // analog input N differential for PGA
   
 
   adc->adc0->setAveraging(ADC0_AVERAGING); // set number of averages
-  adc->adc0->setResolution(8);             // set bits of resolution - 9 bit for differential
+  adc->adc0->setResolution(12);             // set bits of resolution - 9 bit for differential
 
   // it can be ADC_VERY_LOW_SPEED, ADC_LOW_SPEED, ADC_MED_SPEED, ADC_HIGH_SPEED_16BITS, ADC_HIGH_SPEED or ADC_VERY_HIGH_SPEED
   // see the documentation for more information
@@ -207,16 +213,23 @@ void setup()
   // it can be ADC_VERY_LOW_SPEED, ADC_LOW_SPEED, ADC_MED_SPEED, ADC_HIGH_SPEED or ADC_VERY_HIGH_SPEED
   adc->adc0->setSamplingSpeed(ADC_SAMPLING_SPEED::VERY_HIGH_SPEED); // change the sampling speed
   // adc->adc0->setReference(ADC_REFERENCE::REF_1V2); // use default 3.3V for input signal > 1.2V
-
+  // adc->adc0->startQuadTimer(freq);
+  // adc->adc0->stopQuadTimer();
   //adc->adc0->enablePGA(pga); no PGA in Teensy 4.0
 
   // Lets setup Analog 0 dma
-  adc0_dma.source((volatile uint16_t &)ADC1_R0);
-  adc0_dma.destinationBuffer(adc0_buf, sizeof(adc0_buf));
+  
+  adc0_dma.source((volatile uint16_t&)ADC1_R0);
+  adc0_dma.destinationBuffer((uint16_t *)adc0_buf, sizeof(adc0_buf));
   adc0_dma.triggerAtHardwareEvent(DMAMUX_SOURCE_ADC1);
   adc0_dma.interruptAtCompletion();
   adc0_dma.disableOnCompletion();
   adc0_dma.attachInterrupt(&adc0_dma_isr);
+
+  adc->adc0->startSingleRead(ANALOG_INPUT); // PGA is not working in single channel mode, Teensy 4.0 does not have differential inputs
+    //NVIC_DISABLE_IRQ(IRQ_PDB);
+    // Serial.println("Start PDB");
+  //adc->adc0->startQuadTimer(freq); // check ADC_Module::startPDB() in ADC_Module.cpp for //NVIC_ENABLE_IRQ(IRQ_PDB);
 
   // // ADC1 for internal temperature measurement Teensy 3.1
 
@@ -255,10 +268,11 @@ void setup()
   //timer500us.priority(0);
   //timerDelay.priority(16);
 
+  timer500us.begin(timer500us_isr, 50000 / 10); // motor output pulses slowly going to 500us
   for (int speed = 20; speed <= 100; speed++)
   {
-    timer500us.end();
-    timer500us.begin(timer500us_isr, 50000 / speed); // motor output pulses slowly going to 500us
+    // timer500us.end();
+    timer500us.update(50000 / speed); // motor output pulses slowly going to 500us
     displayPrint("Mot=%3d%%", speed);
     delay(100);
   }
@@ -609,6 +623,9 @@ void timer500us_isr(void)
     hourTimeout--;        // every 1ms
     pulsetime = micros(); // for position compensation
   }
+#if defined(__IMXRT1062__) // Teensy 4.0
+  asm("DSB");
+#endif
 }
 
 // motor (from HALL sensor) interrupt
@@ -633,6 +650,9 @@ void motor_isr(void)
 
     timerDelay.begin(callback_delay_isr, delayOffset);
   }
+#if defined(__IMXRT1062__) // Teensy 4.0
+  asm("DSB");
+#endif
 }
 
 void callback_delay_isr()
@@ -664,20 +684,25 @@ void callback_delay_isr()
       break;
     }
 
-    memset((void *)adc0_buf, 0, sizeof(adc0_buf)); // clear DMA buffer
-
+    
     // adc0_busy = 1;
+    //Serial.printf("%x %x\n", (uint32_t)adc0_buf, (uint32_t)adc_data );
 
     // update PGA only Teensy 3.2
     //adc->adc0->enablePGA(pga);
     //adc->analogReadDifferential(A10, A11, ADC_0); // start ADC_0 differential - to use PGA
     // adc0_dma.enable();
+    
+    memset((void *)adc0_buf, 0, sizeof(adc0_buf)); // clear DMA buffer
+
+    
+
+    // adc->adc0->startSingleRead(A10); // PGA is not working in single channel mode, Teensy 4.0 does not have differential inputs
+    // //NVIC_DISABLE_IRQ(IRQ_PDB);
+    // // Serial.println("Start PDB");
     adc->adc0->enableDMA();
     adc0_dma.enable();
-
-    adc->adc0->startSingleRead(A10); // PGA is not working in single channel mode, Teensy 4.0 does not have differential inputs
-    //NVIC_DISABLE_IRQ(IRQ_PDB);
-    // Serial.println("Start PDB");
+    adc->adc0->startSingleRead(ANALOG_INPUT);
     adc->adc0->startQuadTimer(freq); // check ADC_Module::startPDB() in ADC_Module.cpp for //NVIC_ENABLE_IRQ(IRQ_PDB);
     adc0_busy = true;
     updateResults(); // update outputs from adc_data[] during next ADC conversion
@@ -688,10 +713,17 @@ void callback_delay_isr()
     holdingRegs[EXEC_TIME] = motorPulseIndex; // just for debugging
     // adc0_dma_isr();
   }
+#if defined(__IMXRT1062__) // Teensy 4.0
+  asm("DSB");
+#endif
 }
 
 void adc0_dma_isr(void)
 {
+  adc->adc0->stopQuadTimer();
+  adc->adc0->disableDMA();
+ 
+  adc0_dma.disable();
   adc0_dma.clearInterrupt();
   adc0_dma.clearComplete();
   // Serial.println("DMA interrupt");
@@ -699,22 +731,35 @@ void adc0_dma_isr(void)
   //PDB0_CH0C1 = 0;
 
   //adc->adc0->stopPDB();
-  adc->adc0->stopQuadTimer();
-  adc0_dma.disable();
-  adc->adc0->disableDMA();
-  adc0_dma.disable();
+  // Teensy 4.0 not working without clearing cache
+  if ((uint32_t)adc0_buf >= 0x20200000u)
+    arm_dcache_delete((void *)adc0_buf, sizeof(adc0_buf));
+  
 
   for (int i = 0; i < ANALOG_BUFFER_SIZE; i++) // copy DMA buffer
   {
     // adc_data[i]=(adc0_buf[i] + 256) >> 1; // full scale signal signed 9bit to unsigned 8bit
-    if (adc0_buf[i] < 0) // only positive wave of signal 8bit
+
+    if (adc0_buf[i] < 2048) // only positive wave of signal 
       adc_data[i] = 0;
     else
-      adc_data[i] = adc0_buf[i];
-  }
+     adc_data[i] = (adc0_buf[i] - 2048)*pga >> 4;  // Teensy 4.0 has no analog PGA
 
+    // Serial.printf("%u: %u %u ", i, adc0_buf[i], adc_data[i]);
+  }
+  if (adc0_dma.error()) {
+    Serial.println("dma error");
+    adc0_dma.clearError();
+  }
+  //updateResults();
+  
   adc0_busy = false;
   holdingRegs[EXEC_TIME_ADC] = micros() - exectime; // exectime of adc conversions
+  
+  
+#if defined(__IMXRT1062__) // Teensy 4.0
+  asm("DSB");
+#endif
 }
 
 void updateResults()
@@ -732,6 +777,8 @@ void updateResults()
 
   peakValue = 0;
   positionValue = 0;
+
+  //Serial.println("update results");
 
   for (int i = 0; i < ANALOG_BUFFER_SIZE; i++)
   {
@@ -877,24 +924,24 @@ void updateResults()
 
   // warning! SPI makes noise, do not send data through SPI when ADC is running
 
-  // switch (analogOutMode)
-  // { // an1/an2: "1Int 2Pos" = 0x0501, "1Pos 2Int" = 0x0105, "1Int 2Int" = 0x0505, "1Pos 2Pos" = 0x0101
-  // case 0x0501:
-  //   updateSPI(peakValue, positionValue); // range is 2x 16bit
-  //   break;
-  // case 0x0105:
-  //   updateSPI(positionValue, peakValue);
-  //   break;
-  // case 0x0505:
-  //   updateSPI(peakValue, peakValue);
-  //   break;
-  // case 0x0101:
-  //   updateSPI(positionValue, positionValue);
-  //   break;
-  // default:
-  //   updateSPI(peakValue, positionValue); // range is 2x 16bit
-  //   break;
-  // }
+  switch (analogOutMode)
+  { // an1/an2: "1Int 2Pos" = 0x0501, "1Pos 2Int" = 0x0105, "1Int 2Int" = 0x0505, "1Pos 2Pos" = 0x0101
+  case 0x0501:
+    updateSPI(peakValue, positionValue); // range is 2x 16bit
+    break;
+  case 0x0105:
+    updateSPI(positionValue, peakValue);
+    break;
+  case 0x0505:
+    updateSPI(peakValue, peakValue);
+    break;
+  case 0x0101:
+    updateSPI(positionValue, positionValue);
+    break;
+  default:
+    updateSPI(peakValue, positionValue); // range is 2x 16bit
+    break;
+  }
 
   // if (dataSent && motorPulseIndex == 0) // prepare data for visualization on PC, only first mirror
   if (dataSent && motorPulseIndex == (filterPosition % 6)) // possibility to view different mirrors by changing positionFilter

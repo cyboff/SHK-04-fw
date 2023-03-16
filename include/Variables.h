@@ -3,7 +3,7 @@
 #define __Variables_H
 
 // TEENSY3.2 pin assignment
-#define FILTER_PIN 24 // not connected, for internal use of Bounce2 library filter - SIGNAL PRESENT filter ON/OFF
+#define FILTER_PIN 33 // not connected, for internal use of Bounce2 library filter - SIGNAL PRESENT filter ON/OFF
 
 // assign the Arduino pin that must be connected to RE-DE RS485 transceiver
 #define TXEN 2 // Serial1: RX1=0 TX1=1 TXEN=2
@@ -27,6 +27,8 @@
 #define LED_SIGNAL 18 // now same as OUT_SIGNAL
 #define LED_ALARM 19
 
+#define ANALOG_INPUT A10
+
 #define PIN_BTN_A 20 //(digital pin)
 #define PIN_BTN_B 21 //(digital pin)
 #define PIN_BTN_C 22 //(digital pin)
@@ -35,7 +37,7 @@
 #define TEST_IN 28
 #define SET_IN 27
 
-#define LASER 26
+#define LASER 29
 #define IR_LED 25
 #define OUT_SIGNAL_NEG 8
 #define OUT_ALARM_NEG 9 //negative output: 24V=>OK, 0V=>ALARM
