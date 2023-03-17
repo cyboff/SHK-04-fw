@@ -218,7 +218,7 @@ void setup()
   //adc->adc0->enablePGA(pga); no PGA in Teensy 4.0
 
   // Lets setup Analog 0 dma
-  
+  adc0_dma.begin();
   adc0_dma.source((volatile uint16_t&)ADC1_R0);
   adc0_dma.destinationBuffer((uint16_t *)adc0_buf, sizeof(adc0_buf));
   adc0_dma.triggerAtHardwareEvent(DMAMUX_SOURCE_ADC1);
@@ -226,7 +226,7 @@ void setup()
   adc0_dma.disableOnCompletion();
   adc0_dma.attachInterrupt(&adc0_dma_isr);
 
-  adc->adc0->startSingleRead(ANALOG_INPUT); // PGA is not working in single channel mode, Teensy 4.0 does not have differential inputs
+  // adc->adc0->startSingleRead(ANALOG_INPUT); // PGA is not working in single channel mode, Teensy 4.0 does not have differential inputs
     //NVIC_DISABLE_IRQ(IRQ_PDB);
     // Serial.println("Start PDB");
   //adc->adc0->startQuadTimer(freq); // check ADC_Module::startPDB() in ADC_Module.cpp for //NVIC_ENABLE_IRQ(IRQ_PDB);
@@ -280,6 +280,13 @@ void setup()
   // clear data buffers
   memset((void *)adc0_buf, 0, sizeof(adc0_buf));
   memset((void *)adc_data, 0, sizeof(adc_data));
+  // Teensy 4.0 not working without clearing cache
+    if ((uint32_t)adc0_buf >= 0x20200000u) arm_dcache_flush_delete((void *)adc0_buf, sizeof(adc0_buf));
+  
+  adc->adc0->enableDMA();
+  // adc0_dma.enable();
+  adc->adc0->startSingleRead(ANALOG_INPUT);
+  adc->adc0->startQuadTimer(freq); // check ADC_Module::startPDB() in ADC_Module.cpp for //NVIC_ENABLE_IRQ(IRQ_PDB);
 }
 
 void loop()
@@ -695,15 +702,17 @@ void callback_delay_isr()
     
     memset((void *)adc0_buf, 0, sizeof(adc0_buf)); // clear DMA buffer
 
-    
+    // Teensy 4.0 not working without clearing cache
+    if ((uint32_t)adc0_buf >= 0x20200000u) arm_dcache_flush_delete((void *)adc0_buf, sizeof(adc0_buf));
 
     // adc->adc0->startSingleRead(A10); // PGA is not working in single channel mode, Teensy 4.0 does not have differential inputs
     // //NVIC_DISABLE_IRQ(IRQ_PDB);
     // // Serial.println("Start PDB");
-    adc->adc0->enableDMA();
+    // adc->adc0->enableDMA();
+
     adc0_dma.enable();
-    adc->adc0->startSingleRead(ANALOG_INPUT);
-    adc->adc0->startQuadTimer(freq); // check ADC_Module::startPDB() in ADC_Module.cpp for //NVIC_ENABLE_IRQ(IRQ_PDB);
+    // adc->adc0->startSingleRead(ANALOG_INPUT);
+    // adc->adc0->startQuadTimer(freq); // check ADC_Module::startPDB() in ADC_Module.cpp for //NVIC_ENABLE_IRQ(IRQ_PDB);
     adc0_busy = true;
     updateResults(); // update outputs from adc_data[] during next ADC conversion
     holdingRegs[EXEC_TIME] = micros() - exectime;
@@ -720,20 +729,21 @@ void callback_delay_isr()
 
 void adc0_dma_isr(void)
 {
-  adc->adc0->stopQuadTimer();
-  adc->adc0->disableDMA();
+  // adc->adc0->stopQuadTimer();
+  // adc->adc0->disableDMA();
  
-  adc0_dma.disable();
+  // adc0_dma.disable();
   adc0_dma.clearInterrupt();
-  adc0_dma.clearComplete();
+  // adc0_dma.clearComplete();
   // Serial.println("DMA interrupt");
   // PDB0_CH1C1 = 0; // clear PDB channel control register - should be implemented in stopPDB() only Teensy 3.2
   //PDB0_CH0C1 = 0;
 
   //adc->adc0->stopPDB();
+
   // Teensy 4.0 not working without clearing cache
-  if ((uint32_t)adc0_buf >= 0x20200000u)
-    arm_dcache_delete((void *)adc0_buf, sizeof(adc0_buf));
+  // if ((uint32_t)adc0_buf >= 0x20200000u)
+  //   arm_dcache_delete((void *)adc0_buf, sizeof(adc0_buf));
   
 
   for (int i = 0; i < ANALOG_BUFFER_SIZE; i++) // copy DMA buffer
@@ -743,14 +753,16 @@ void adc0_dma_isr(void)
     if (adc0_buf[i] < 2048) // only positive wave of signal 
       adc_data[i] = 0;
     else
-     adc_data[i] = (adc0_buf[i] - 2048)*pga >> 4;  // Teensy 4.0 has no analog PGA
+     adc_data[i] = (adc0_buf[i] - 2048) >> 3;  // Teensy 4.0 has no analog PGA , 10bit differential to 8bit positive wave only
+        // adc_data[i] = adc0_buf[i] >> 4;
 
     // Serial.printf("%u: %u %u ", i, adc0_buf[i], adc_data[i]);
   }
-  if (adc0_dma.error()) {
-    Serial.println("dma error");
-    adc0_dma.clearError();
-  }
+  // if (adc0_dma.error()) {
+  //   Serial.println("dma error");
+  //   adc0_dma.clearError();
+  // }
+
   //updateResults();
   
   adc0_busy = false;
