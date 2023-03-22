@@ -2,7 +2,7 @@
 #ifndef __Variables_H
 #define __Variables_H
 
-// TEENSY3.2 pin assignment
+// TEENSY4.0 pin assignment
 #define FILTER_PIN 33 // not connected, for internal use of Bounce2 library filter - SIGNAL PRESENT filter ON/OFF
 
 // assign the Arduino pin that must be connected to RE-DE RS485 transceiver
@@ -150,35 +150,35 @@ enum
 
 // MODBUS
 
-extern int modbusID;
+extern volatile uint16_t modbusID;
 
 const uint16_t modbusSpeedArray[] = {12, 48, 96, 192, 384, 576, 1152}; // baudrate/100
-extern int actualSpeed;                                                   // array index
-extern uint32_t modbusSpeed;            // default 19200
+extern volatile uint16_t actualSpeed;                                                   // array index
+extern volatile uint32_t modbusSpeed;            // default 19200
 
-const unsigned int modbusFormatArray[] = {SERIAL_8N1, SERIAL_8E1, SERIAL_8O1, SERIAL_8N2};
-extern int actualFormat;
-extern unsigned int modbusFormat;
+const uint16_t modbusFormatArray[] = {SERIAL_8N1, SERIAL_8E1, SERIAL_8O1, SERIAL_8N2};
+extern volatile uint16_t actualFormat;
+extern volatile uint16_t modbusFormat;
 
 extern boolean dataSent;
 extern int sendNextLn;
-extern uint16_t io_state;
+extern volatile uint16_t io_state;
 extern unsigned long exectime;
 extern unsigned long pulsetime;
 
 extern uint16_t holdingRegs[TOTAL_REGS_SIZE]; // function 3 and 16 register array
 
-extern int windowBegin, windowEnd, positionOffset, positionMode, analogOutMode;
-extern int filterPosition, filterOn, filterOff;
+extern volatile uint16_t windowBegin, windowEnd, positionOffset, positionMode, analogOutMode;
+extern volatile uint16_t filterPosition, filterOn, filterOff;
 
-extern int thre256, thre, thre1, thre2;
-extern int set, pga, pga1, pga2;
+extern volatile uint16_t thre256, thre, thre1, thre2;
+extern volatile uint16_t set, pga, pga1, pga2;
 
 // diagnosis
-extern int celsius; // internal temp in deg of Celsius
-extern int temp;    // internal ADC Temp channel value
-extern int max_temperature;
-extern unsigned int total_runtime;
+extern volatile uint16_t celsius; // internal temp in deg of Celsius
+extern volatile uint16_t temp;    // internal ADC Temp channel value
+extern volatile uint16_t max_temperature;
+extern volatile uint16_t total_runtime;
 
 extern volatile boolean blinkMenu;
 extern int setDispIndex;

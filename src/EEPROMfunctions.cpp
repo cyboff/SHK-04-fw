@@ -4,57 +4,68 @@
 
 #include "Variables.h"
 #include "EEPROMfunctions.h"
-int modbusID;
+volatile uint16_t modbusID = 0;
 
-int actualSpeed;                                                   // array index
-uint32_t modbusSpeed;            // default 19200
-int actualFormat;
-unsigned int modbusFormat;
+volatile uint16_t actualSpeed = 0; // array index
+volatile uint32_t modbusSpeed = 0; // default 19200
+volatile uint16_t actualFormat = 0;
+volatile uint16_t modbusFormat = 0;
 
-boolean dataSent;
-int sendNextLn;
-uint16_t io_state;
-unsigned long exectime;
-unsigned long pulsetime;
+boolean dataSent = false;
+int sendNextLn = 0;
+volatile uint16_t io_state = 0;
+unsigned long exectime = 0;
+unsigned long pulsetime = 0;
 
-int windowBegin, windowEnd, positionOffset, positionMode, analogOutMode;
-int filterPosition, filterOn, filterOff;
+volatile uint16_t windowBegin = 0, windowEnd = 0, positionOffset = 0, positionMode = 0, analogOutMode = 0;
+volatile uint16_t filterPosition = 0, filterOn = 0, filterOff = 0;
 
-int thre256, thre, thre1, thre2;
-int set, pga, pga1, pga2;
+volatile uint16_t thre256 = 0, thre = 0, thre1 = 0, thre2 = 0;
+volatile uint16_t set = 0, pga = 0, pga1 = 0, pga2 = 0;
 
 // diagnosis
-int celsius; // internal temp in deg of Celsius
-int temp;    // internal ADC Temp channel value
-int max_temperature;
-unsigned int total_runtime;
+volatile uint16_t celsius = 0; // internal temp in deg of Celsius
+volatile uint16_t temp = 0;    // internal ADC Temp channel value
+volatile uint16_t max_temperature = 0;
+volatile uint16_t total_runtime = 0;
 
 // EEPROM
 
 // Write a unsigned int (two bytes) value to eeprom
-void eeprom_writeInt(unsigned int address, unsigned int value)
+void eeprom_writeInt(uint16_t address, uint16_t value)
 {
 
   EEPROM.write(address, value % 256);     // LSB
   EEPROM.write(address + 1, value / 256); // MSB
+#if defined(__IMXRT1062__)                // Teensy 4.0
+  asm("DSB");
+#endif
 }
 
-void eeprom_updateInt(unsigned int address, unsigned int value)
+void eeprom_updateInt(uint16_t address, uint16_t value)
 {
 
   EEPROM.update(address, value % 256);     // LSB
   EEPROM.update(address + 1, value / 256); // MSB
+#if defined(__IMXRT1062__)                 // Teensy 4.0
+  asm("DSB");
+#endif
 }
 
 // read a unsigned int (two bytes) value from eeprom
-unsigned int eeprom_readInt(unsigned int address)
+uint16_t eeprom_readInt(uint16_t address)
 {
 
   return EEPROM.read(address) + EEPROM.read(address + 1) * 256;
+// return EEPROM.read(address) | EEPROM.read(address + 1) << 8;
+#if defined(__IMXRT1062__) // Teensy 4.0
+  asm("DSB");
+#endif
 }
 
 void EEPROM_init()
 {
+  EEPROM.begin();
 
   if (
       eeprom_readInt(EE_ADDR_MODEL_TYPE) == MODEL_TYPE &&
@@ -70,6 +81,9 @@ void EEPROM_init()
     config_writeDefaultsToEEPROM();
     config_loadFromEEPROM();
   }
+#if defined(__IMXRT1062__) // Teensy 4.0
+  asm("DSB");
+#endif
 }
 
 void config_loadFromEEPROM()
@@ -97,6 +111,9 @@ void config_loadFromEEPROM()
 
   max_temperature = eeprom_readInt(EE_ADDR_max_temperature);
   total_runtime = eeprom_readInt(EE_ADDR_total_runtime);
+#if defined(__IMXRT1062__) // Teensy 4.0
+  asm("DSB");
+#endif
 }
 
 void config_writeDefaultsToEEPROM()
@@ -129,6 +146,9 @@ void config_writeDefaultsToEEPROM()
 
   eeprom_writeInt(EE_ADDR_max_temperature, max_temperature);
   eeprom_writeInt(EE_ADDR_total_runtime, total_runtime);
+#if defined(__IMXRT1062__) // Teensy 4.0
+  asm("DSB");
+#endif
 }
 
 void reset_writeDefaultsToEEPROM()
@@ -159,6 +179,9 @@ void reset_writeDefaultsToEEPROM()
   eeprom_writeInt(EE_ADDR_filter_on, DEFAULT_FILTER_ON);
   eeprom_writeInt(EE_ADDR_filter_off, DEFAULT_FILTER_OFF);
 
-  // eeprom_writeInt(EE_ADDR_max_temperature, max_temperature);
-  // eeprom_writeInt(EE_ADDR_total_runtime, total_runtime);
+// eeprom_writeInt(EE_ADDR_max_temperature, max_temperature);
+// eeprom_writeInt(EE_ADDR_total_runtime, total_runtime);
+#if defined(__IMXRT1062__) // Teensy 4.0
+  asm("DSB");
+#endif
 }

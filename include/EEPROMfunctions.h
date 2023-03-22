@@ -69,10 +69,10 @@
 #define EE_ADDR_total_runtime 0x40   // WORD
 
 // Write a unsigned int (two bytes) value to eeprom
-void eeprom_writeInt(unsigned int address, unsigned int value);
-void eeprom_updateInt(unsigned int address, unsigned int value);
+void eeprom_writeInt(uint16_t address, uint16_t value);
+void eeprom_updateInt(uint16_t address, uint16_t value);
 // read a unsigned int (two bytes) value from eeprom
-unsigned int eeprom_readInt(unsigned int address);
+uint16_t eeprom_readInt(uint16_t address);
 void EEPROM_init();
 void config_loadFromEEPROM();
 void config_writeDefaultsToEEPROM();

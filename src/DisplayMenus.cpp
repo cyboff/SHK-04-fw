@@ -43,17 +43,17 @@ unsigned int menu_modbusID = 1;
 unsigned int menu_modbusSpeed = 19200;
 unsigned int menu_modbusFormat = SERIAL_8N1;
 
-int menu_windowBegin, menu_windowEnd, menu_positionOffset, menu_positionMode, menu_analogOutMode;
-int menu_filterPosition, menu_filterOn, menu_filterOff;
+int menu_windowBegin = 0, menu_windowEnd = 0, menu_positionOffset = 0, menu_positionMode = 0, menu_analogOutMode = 0;
+int menu_filterPosition = 0, menu_filterOn = 0, menu_filterOff = 0;
 const char *menu_positionModeDisp[] = {"RISE", "FALL", "PEAK", " HMD"};
 const char *menu_analogOutModeDisp[] = {"Pos", "Int"};
 
 
 const char *menu_setDisp[] = {"MAN1", "MAN2", "REL ", "REL1", "REL2"};
 int setDispIndex = 0;
-int menu_pga;
-int menu_thre;
-int menu_set;
+int menu_pga = 0;
+int menu_thre = 0;
+int menu_set = 0;
 
 volatile long peakValueTimeDisp = 0;
 volatile int peakValueDisp = 0;

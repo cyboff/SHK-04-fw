@@ -23,7 +23,7 @@
 #include "EEPROMfunctions.h"
 #include "DisplayMenus.h"
 
-uint16_t holdingRegs[TOTAL_REGS_SIZE]; // function 3 and 16 register array
+uint16_t holdingRegs[TOTAL_REGS_SIZE] = {}; // function 3 and 16 register array
 
 // Keyboard times
 #define BTN_DEBOUNCE_TIME 200 // debounce time (*500us) to prevent flickering when pressing or releasing the button
@@ -41,20 +41,18 @@ float sma = 0;
 #define ADC0_AVERAGING 1
 #define ANALOG_BUFFER_SIZE 200
 
-
-
 ADC *adc = new ADC(); // adc object
 DMAChannel adc0_dma;
 // References for ISRs...
 // extern void adc0_dma_isr(void);
 
-//const uint32_t ANALOG_BUFFER_SIZE = 200;
+// const uint32_t ANALOG_BUFFER_SIZE = 200;
 DMAMEM static volatile uint16_t __attribute__((aligned(32))) adc0_buf[ANALOG_BUFFER_SIZE]; // buffer 1...
-volatile uint8_t adc_data[ANALOG_BUFFER_SIZE];// ADC_0 9-bit resolution for differential - sign + 8 bit
+volatile uint8_t adc_data[ANALOG_BUFFER_SIZE];                                             // ADC_0 9-bit resolution for differential - sign + 8 bit
 volatile uint16_t value_buffer[25] = {};
 // volatile int value_peak[ANALOG_BUFFER_SIZE];
 volatile boolean adc0_busy = false;
-//unsigned int freq = 400000;         // PDB frequency
+// unsigned int freq = 400000;         // PDB frequency
 unsigned int freq = 400000;         // PDB frequency
 volatile int adc0Value = 0;         // analog value
 volatile int analogBufferIndex = 0; // analog buffer pointer
@@ -85,7 +83,7 @@ volatile boolean BtnReleasedC = true;
 volatile boolean BtnReleasedD = true;
 
 // check and load proper settings
-void InitVariables();
+// void InitVariables();
 void checkSET();
 void checkTEST();
 void checkALARM();
@@ -120,10 +118,20 @@ void checkModbus();
 
 void setup()
 {
-  Serial.begin(9600);
-  Serial.println("Starting");
+  // Serial.begin(9600);
+  // while (!Serial && millis() < 5000)
+  //   ;
+  // Serial.println("Starting");
+  // Serial.printf("start: ID %u PM %u ", modbusID, positionMode);
 
-  InitVariables();
+  // InitVariables();
+  // Serial.printf("init: ID %u PM %u ", modbusID, positionMode);
+
+  // EEPROM_init();
+  // Serial.printf("EEinit: ID %u PM %u \n", modbusID, positionMode);
+
+  EEPROM_init();
+  delay(1000);
   // initialize LEDs and I/O
 
   // pinMode(LED_BUILTIN, OUTPUT); //conflicts with SPI_CLK!!!
@@ -165,7 +173,6 @@ void setup()
   displayPrint("Starting");
   delay(500);
 
-  EEPROM_init();
   checkSET();
 
   // initialize filters
@@ -189,7 +196,7 @@ void setup()
   holdingRegs[MB_MODEL_SERIAL_NUMBER] = MODEL_SERIAL_NUMBER;
   holdingRegs[MB_FW_VERSION] = FW_VERSION;
 
-  holdingRegs[EXEC_TIME] = 0;
+  holdingRegs[EXEC_TIME] = 0;  
 
   // Serial.begin(modbusSpeed);
 
@@ -201,11 +208,10 @@ void setup()
   ///// ADC0 in differential mode with PGA for signal from photodiode ////
 
   pinMode(ANALOG_INPUT, INPUT_DISABLE); // analog input P differential for PGA
-  //pinMode(A11, INPUT); // analog input N differential for PGA
-  
+  // pinMode(A11, INPUT); // analog input N differential for PGA
 
   adc->adc0->setAveraging(ADC0_AVERAGING); // set number of averages
-  adc->adc0->setResolution(12);             // set bits of resolution - 9 bit for differential
+  adc->adc0->setResolution(12);            // set bits of resolution - 9 bit for differential
 
   // it can be ADC_VERY_LOW_SPEED, ADC_LOW_SPEED, ADC_MED_SPEED, ADC_HIGH_SPEED_16BITS, ADC_HIGH_SPEED or ADC_VERY_HIGH_SPEED
   // see the documentation for more information
@@ -215,11 +221,11 @@ void setup()
   // adc->adc0->setReference(ADC_REFERENCE::REF_1V2); // use default 3.3V for input signal > 1.2V
   // adc->adc0->startQuadTimer(freq);
   // adc->adc0->stopQuadTimer();
-  //adc->adc0->enablePGA(pga); no PGA in Teensy 4.0
+  // adc->adc0->enablePGA(pga); no PGA in Teensy 4.0
 
   // Lets setup Analog 0 dma
   adc0_dma.begin();
-  adc0_dma.source((volatile uint16_t&)ADC1_R0);
+  adc0_dma.source((volatile uint16_t &)ADC1_R0);
   adc0_dma.destinationBuffer((uint16_t *)adc0_buf, sizeof(adc0_buf));
   adc0_dma.triggerAtHardwareEvent(DMAMUX_SOURCE_ADC1);
   adc0_dma.interruptAtCompletion();
@@ -227,9 +233,9 @@ void setup()
   adc0_dma.attachInterrupt(&adc0_dma_isr);
 
   // adc->adc0->startSingleRead(ANALOG_INPUT); // PGA is not working in single channel mode, Teensy 4.0 does not have differential inputs
-    //NVIC_DISABLE_IRQ(IRQ_PDB);
-    // Serial.println("Start PDB");
-  //adc->adc0->startQuadTimer(freq); // check ADC_Module::startPDB() in ADC_Module.cpp for //NVIC_ENABLE_IRQ(IRQ_PDB);
+  // NVIC_DISABLE_IRQ(IRQ_PDB);
+  // Serial.println("Start PDB");
+  // adc->adc0->startQuadTimer(freq); // check ADC_Module::startPDB() in ADC_Module.cpp for //NVIC_ENABLE_IRQ(IRQ_PDB);
 
   // // ADC1 for internal temperature measurement Teensy 3.1
 
@@ -246,7 +252,7 @@ void setup()
   // // adc->startContinuousDifferential(A10, A11, ADC_0);
   // adc->startContinuous(38, ADC_1); // do not want to accept ADC_INTERNAL_SOURCE::TEMP_SENSOR
 
-  //Teensy 4.0 uses tempmon instead of ADC
+  // Teensy 4.0 uses tempmon instead of ADC
   tempmon_init();
   tempmon_Start();
 
@@ -257,16 +263,16 @@ void setup()
 
   pinMode(MOTOR_ALARM, INPUT_PULLUP); // motor input pulses
   // NVIC_SET_PRIORITY(IRQ_PORTD, 16);   // pin 14 - PortD, see schematic of Teensy 3.2
-  //NVIC_SET_PRIORITY(IRQ_GPIO6789,16);  // Teensy 4.0
+  // NVIC_SET_PRIORITY(IRQ_GPIO6789,16);  // Teensy 4.0
 
-  if (positionOffset < 1000)          // depends on motor HALL sensors & mirror position - choose the best to have no timing issues
+  if (positionOffset < 1000) // depends on motor HALL sensors & mirror position - choose the best to have no timing issues
     attachInterrupt(digitalPinToInterrupt(MOTOR_ALARM), motor_isr, FALLING);
   else
     attachInterrupt(digitalPinToInterrupt(MOTOR_ALARM), motor_isr, RISING);
 
   // motor slow start
-  //timer500us.priority(0);
-  //timerDelay.priority(16);
+  // timer500us.priority(0);
+  // timerDelay.priority(16);
 
   timer500us.begin(timer500us_isr, 50000 / 10); // motor output pulses slowly going to 500us
   for (int speed = 20; speed <= 100; speed++)
@@ -281,8 +287,9 @@ void setup()
   memset((void *)adc0_buf, 0, sizeof(adc0_buf));
   memset((void *)adc_data, 0, sizeof(adc_data));
   // Teensy 4.0 not working without clearing cache
-    if ((uint32_t)adc0_buf >= 0x20200000u) arm_dcache_flush_delete((void *)adc0_buf, sizeof(adc0_buf));
-  
+  if ((uint32_t)adc0_buf >= 0x20200000u)
+    arm_dcache_flush_delete((void *)adc0_buf, sizeof(adc0_buf));
+
   adc->adc0->enableDMA();
   // adc0_dma.enable();
   adc->adc0->startSingleRead(ANALOG_INPUT);
@@ -366,13 +373,13 @@ void checkTEST()
 void checkALARM()
 {
   // check internal temperature
-  //temp = adc->adc1->readSingle();
+  // temp = adc->adc1->readSingle();
   // celsius = (181964504 - 69971 * temp12) >> 12 ; //Vref 1.2
   // celsius = 25.0 + 0.46977 * (892.43 - temp); // Vref 3.3
-  celsius = (int)tempmonGetTemp();
+  celsius = (uint16_t)tempmonGetTemp();
   if (celsius > max_temperature)
   {
-    max_temperature = celsius;
+    max_temperature = celsius & 0xFFFF;
     eeprom_writeInt(EE_ADDR_max_temperature, max_temperature);
   }
 
@@ -525,7 +532,7 @@ void timer500us_isr(void)
 { // every 500us
   // motor pulse
   digitalToggleFast(MOTOR_CLK);
-  //digitalWriteFast(MOTOR_CLK, !digitalReadFast(MOTOR_CLK));
+  // digitalWriteFast(MOTOR_CLK, !digitalReadFast(MOTOR_CLK));
 
   // update timeouts
 
@@ -691,19 +698,19 @@ void callback_delay_isr()
       break;
     }
 
-    
     // adc0_busy = 1;
-    //Serial.printf("%x %x\n", (uint32_t)adc0_buf, (uint32_t)adc_data );
+    // Serial.printf("%x %x\n", (uint32_t)adc0_buf, (uint32_t)adc_data );
 
     // update PGA only Teensy 3.2
-    //adc->adc0->enablePGA(pga);
-    //adc->analogReadDifferential(A10, A11, ADC_0); // start ADC_0 differential - to use PGA
+    // adc->adc0->enablePGA(pga);
+    // adc->analogReadDifferential(A10, A11, ADC_0); // start ADC_0 differential - to use PGA
     // adc0_dma.enable();
-    
+
     memset((void *)adc0_buf, 0, sizeof(adc0_buf)); // clear DMA buffer
 
     // Teensy 4.0 not working without clearing cache
-    if ((uint32_t)adc0_buf >= 0x20200000u) arm_dcache_flush_delete((void *)adc0_buf, sizeof(adc0_buf));
+    if ((uint32_t)adc0_buf >= 0x20200000u)
+      arm_dcache_flush_delete((void *)adc0_buf, sizeof(adc0_buf));
 
     // adc->adc0->startSingleRead(A10); // PGA is not working in single channel mode, Teensy 4.0 does not have differential inputs
     // //NVIC_DISABLE_IRQ(IRQ_PDB);
@@ -731,30 +738,29 @@ void adc0_dma_isr(void)
 {
   // adc->adc0->stopQuadTimer();
   // adc->adc0->disableDMA();
- 
+
   // adc0_dma.disable();
   adc0_dma.clearInterrupt();
   // adc0_dma.clearComplete();
   // Serial.println("DMA interrupt");
   // PDB0_CH1C1 = 0; // clear PDB channel control register - should be implemented in stopPDB() only Teensy 3.2
-  //PDB0_CH0C1 = 0;
+  // PDB0_CH0C1 = 0;
 
-  //adc->adc0->stopPDB();
+  // adc->adc0->stopPDB();
 
   // Teensy 4.0 not working without clearing cache
   // if ((uint32_t)adc0_buf >= 0x20200000u)
   //   arm_dcache_delete((void *)adc0_buf, sizeof(adc0_buf));
-  
 
   for (int i = 0; i < ANALOG_BUFFER_SIZE; i++) // copy DMA buffer
   {
     // adc_data[i]=(adc0_buf[i] + 256) >> 1; // full scale signal signed 9bit to unsigned 8bit
 
-    if (adc0_buf[i] < 2048) // only positive wave of signal 
+    if (adc0_buf[i] < 2048) // only positive wave of signal
       adc_data[i] = 0;
     else
-     adc_data[i] = (adc0_buf[i] - 2048) >> 3;  // Teensy 4.0 has no analog PGA , 10bit differential to 8bit positive wave only
-        // adc_data[i] = adc0_buf[i] >> 4;
+      adc_data[i] = (adc0_buf[i] - 2048) >> 3; // Teensy 4.0 has no analog PGA , 10bit differential to 8bit positive wave only
+                                               // adc_data[i] = adc0_buf[i] >> 4;
 
     // Serial.printf("%u: %u %u ", i, adc0_buf[i], adc_data[i]);
   }
@@ -763,12 +769,11 @@ void adc0_dma_isr(void)
   //   adc0_dma.clearError();
   // }
 
-  //updateResults();
-  
+  // updateResults();
+
   adc0_busy = false;
   holdingRegs[EXEC_TIME_ADC] = micros() - exectime; // exectime of adc conversions
-  
-  
+
 #if defined(__IMXRT1062__) // Teensy 4.0
   asm("DSB");
 #endif
@@ -790,7 +795,7 @@ void updateResults()
   peakValue = 0;
   positionValue = 0;
 
-  //Serial.println("update results");
+  // Serial.println("update results");
 
   for (int i = 0; i < ANALOG_BUFFER_SIZE; i++)
   {
@@ -1260,7 +1265,7 @@ void checkModbus()
 
     if (holdingRegs[IO_STATE] & (1 << IO_SW_RESET))
     {
-       SCB_AIRCR = 0x05FA0004;        // software reset on all Cortex M processors
+      SCB_AIRCR = 0x05FA0004; // software reset on all Cortex M processors
     }
   }
 }
@@ -1275,23 +1280,23 @@ void checkModbus()
 //         Serial.println("PDB interrupt");
 // }
 
-void InitVariables()
-{
-  modbusID = 1;
+// void InitVariables()
+// {
+//   modbusID = 1;
 
-  actualSpeed = 3;     // array index
-  modbusSpeed = 19200; // default 19200
+//   actualSpeed = 3;     // array index
+//   modbusSpeed = 19200; // default 19200
 
-  actualFormat = 1;
-  modbusFormat = SERIAL_8N1;
+//   actualFormat = 1;
+//   modbusFormat = SERIAL_8N1;
 
-  max_temperature = 0;
+//   max_temperature = 0;
 
-  dataSent = false;
-  sendNextLn = 0;
-  io_state = 0;
-  exectime = 0;
-  pulsetime = 0;
+//   dataSent = false;
+//   sendNextLn = 0;
+//   io_state = 0;
+//   exectime = 0;
+//   pulsetime = 0;
 
-  total_runtime = 0;
-}
+//   total_runtime = 0;
+// }
