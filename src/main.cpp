@@ -118,20 +118,14 @@ void checkModbus();
 
 void setup()
 {
-  // Serial.begin(9600);
-  // while (!Serial && millis() < 5000)
-  //   ;
-  // Serial.println("Starting");
-  // Serial.printf("start: ID %u PM %u ", modbusID, positionMode);
-
-  // InitVariables();
-  // Serial.printf("init: ID %u PM %u ", modbusID, positionMode);
-
-  // EEPROM_init();
-  // Serial.printf("EEinit: ID %u PM %u \n", modbusID, positionMode);
+  
+  Serial.begin(9600);
+  while (!Serial && millis() < 5000)
+    ;
+  Serial.println("Starting");
 
   EEPROM_init();
-  delay(1000);
+  //delay(1000);
   // initialize LEDs and I/O
 
   // pinMode(LED_BUILTIN, OUTPUT); //conflicts with SPI_CLK!!!
@@ -1117,13 +1111,13 @@ void checkModbus()
     modbus_configure(modbusSpeed, modbusFormat, modbusID, TXEN, 1100, 0); // for compatibility with old SDIS
   }
 
-  if (holdingRegs[SET] != set && holdingRegs[SET] < 4)
+  if (holdingRegs[SET] != set && (holdingRegs[SET] < 4))
   { // RELAY = 3 (REL1 || REL2), MAN1 = 1, MAN2 = 2
     set = holdingRegs[SET];
     eeprom_updateInt(EE_ADDR_set, set);
   }
 
-  if (holdingRegs[GAIN_SET1] != pga1 * 100)
+  if (holdingRegs[GAIN_SET1] != (pga1 * 100))
   {
     switch (holdingRegs[GAIN_SET1])
     { // check for valid values
@@ -1142,13 +1136,13 @@ void checkModbus()
     }
   }
 
-  if (holdingRegs[THRESHOLD_SET1] != thre1 && holdingRegs[THRESHOLD_SET1] >= 2000 && holdingRegs[THRESHOLD_SET1] <= 8000)
+  if ((holdingRegs[THRESHOLD_SET1] != (thre1 * 100)) && (holdingRegs[THRESHOLD_SET1] >= 2000) && (holdingRegs[THRESHOLD_SET1] <= 8000))
   {
     thre1 = holdingRegs[THRESHOLD_SET1] / 100;
     eeprom_updateInt(EE_ADDR_threshold_set1, thre1);
   }
 
-  if (holdingRegs[GAIN_SET2] != pga2)
+  if (holdingRegs[GAIN_SET2] != (pga2 * 100))
   {
     switch (holdingRegs[GAIN_SET2])
     {
@@ -1167,25 +1161,25 @@ void checkModbus()
     }
   }
 
-  if (holdingRegs[THRESHOLD_SET2] != thre2 && holdingRegs[THRESHOLD_SET2] >= 2000 && holdingRegs[THRESHOLD_SET2] <= 8000)
+  if ((holdingRegs[THRESHOLD_SET2] != (thre2 * 100)) && (holdingRegs[THRESHOLD_SET2] >= 2000) && (holdingRegs[THRESHOLD_SET2] <= 8000))
   {
     thre2 = holdingRegs[THRESHOLD_SET2] / 100;
     eeprom_updateInt(EE_ADDR_threshold_set2, thre2);
   }
 
-  if (holdingRegs[WINDOW_BEGIN] != (windowBegin * 100) && holdingRegs[WINDOW_BEGIN] >= 500 && holdingRegs[WINDOW_BEGIN] <= 4500)
+  if (holdingRegs[WINDOW_BEGIN] != (windowBegin * 100) && (holdingRegs[WINDOW_BEGIN] >= 500) && (holdingRegs[WINDOW_BEGIN] <= 4500))
   {
     windowBegin = holdingRegs[WINDOW_BEGIN] / 100;
     eeprom_updateInt(EE_ADDR_window_begin, windowBegin);
   }
 
-  if (holdingRegs[WINDOW_END] != (windowEnd * 100) && holdingRegs[WINDOW_END] >= 5500 && holdingRegs[WINDOW_END] <= 9500)
+  if (holdingRegs[WINDOW_END] != (windowEnd * 100) && (holdingRegs[WINDOW_END] >= 5500) && (holdingRegs[WINDOW_END] <= 9500))
   {
     windowEnd = holdingRegs[WINDOW_END] / 100;
     eeprom_updateInt(EE_ADDR_window_end, windowEnd);
   }
 
-  if (holdingRegs[POSITION_MODE] != positionMode && holdingRegs[POSITION_MODE] < 5)
+  if (holdingRegs[POSITION_MODE] != positionMode && (holdingRegs[POSITION_MODE] < 5))
   {
     positionMode = holdingRegs[POSITION_MODE];
     eeprom_updateInt(EE_ADDR_position_mode, positionMode);
@@ -1207,7 +1201,7 @@ void checkModbus()
     }
   }
 
-  if (holdingRegs[POSITION_OFFSET] != positionOffset && holdingRegs[POSITION_OFFSET] >= 0 && holdingRegs[POSITION_OFFSET] <= 2000)
+  if (holdingRegs[POSITION_OFFSET] != positionOffset && (holdingRegs[POSITION_OFFSET] >= 0) && (holdingRegs[POSITION_OFFSET] <= 2000))
   {
     positionOffset = holdingRegs[POSITION_OFFSET];
     eeprom_updateInt(EE_ADDR_position_offset, positionOffset);
@@ -1220,19 +1214,19 @@ void checkModbus()
       attachInterrupt(digitalPinToInterrupt(MOTOR_ALARM), motor_isr, RISING);
   }
 
-  if (holdingRegs[FILTER_POSITION] != filterPosition && holdingRegs[FILTER_POSITION] < 10000)
+  if (holdingRegs[FILTER_POSITION] != filterPosition && (holdingRegs[FILTER_POSITION] < 10000))
   {
     filterPosition = holdingRegs[FILTER_POSITION];
     eeprom_updateInt(EE_ADDR_filter_position, filterPosition);
   }
 
-  if (holdingRegs[FILTER_ON] != filterOn && holdingRegs[FILTER_ON] < 10000)
+  if (holdingRegs[FILTER_ON] != filterOn && (holdingRegs[FILTER_ON] < 10000))
   {
     filterOn = holdingRegs[FILTER_ON];
     eeprom_updateInt(EE_ADDR_filter_on, filterOn);
   }
 
-  if (holdingRegs[FILTER_OFF] != filterOff && holdingRegs[FILTER_OFF] < 10000)
+  if (holdingRegs[FILTER_OFF] != filterOff && (holdingRegs[FILTER_OFF] < 10000))
   {
     filterOff = holdingRegs[FILTER_OFF];
     eeprom_updateInt(EE_ADDR_filter_off, filterOff);

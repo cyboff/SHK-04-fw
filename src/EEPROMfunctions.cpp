@@ -34,9 +34,11 @@ volatile uint16_t total_runtime = 0;
 // Write a unsigned int (two bytes) value to eeprom
 void eeprom_writeInt(uint16_t address, uint16_t value)
 {
-
-  EEPROM.write(address, value % 256);     // LSB
-  EEPROM.write(address + 1, value / 256); // MSB
+  __disable_irq();
+  EEPROM.write(address, value & 0xFF);     // LSB
+  EEPROM.write(address + 1, value >> 8); // MSB
+  Serial.printf("EEwr %u: %u \n", address, value);
+  __enable_irq();
 #if defined(__IMXRT1062__)                // Teensy 4.0
   asm("DSB");
 #endif
@@ -44,9 +46,11 @@ void eeprom_writeInt(uint16_t address, uint16_t value)
 
 void eeprom_updateInt(uint16_t address, uint16_t value)
 {
-
-  EEPROM.update(address, value % 256);     // LSB
-  EEPROM.update(address + 1, value / 256); // MSB
+  __disable_irq();
+  EEPROM.update(address, value & 0xFF);     // LSB
+  EEPROM.update(address + 1, value >> 8); 
+  Serial.printf("EEupd %u: %u \n", address, value);
+  __enable_irq();
 #if defined(__IMXRT1062__)                 // Teensy 4.0
   asm("DSB");
 #endif
@@ -55,9 +59,9 @@ void eeprom_updateInt(uint16_t address, uint16_t value)
 // read a unsigned int (two bytes) value from eeprom
 uint16_t eeprom_readInt(uint16_t address)
 {
-
-  return EEPROM.read(address) + EEPROM.read(address + 1) * 256;
-// return EEPROM.read(address) | EEPROM.read(address + 1) << 8;
+  // Serial.printf("EEread: %u \n", address);
+  return EEPROM.read(address) | (EEPROM.read(address + 1) << 8);
+  
 #if defined(__IMXRT1062__) // Teensy 4.0
   asm("DSB");
 #endif
@@ -66,6 +70,14 @@ uint16_t eeprom_readInt(uint16_t address)
 void EEPROM_init()
 {
   EEPROM.begin();
+
+  int address = 0;
+  while (address < 64) {
+    Serial.printf( "%u: %u", address, EEPROM.read(address) | EEPROM.read(address+1)<<8);
+    Serial.println();
+    address++;
+    address++;
+  }
 
   if (
       eeprom_readInt(EE_ADDR_MODEL_TYPE) == MODEL_TYPE &&
