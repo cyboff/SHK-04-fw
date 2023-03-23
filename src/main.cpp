@@ -380,7 +380,7 @@ void checkALARM()
   if (celsius > max_temperature)
   {
     max_temperature = celsius & 0xFFFF;
-    eeprom_writeInt(EE_ADDR_max_temperature, max_temperature);
+    eeprom_updateInt(EE_ADDR_max_temperature, max_temperature);
   }
 
   // check runtime
@@ -391,7 +391,7 @@ void checkALARM()
     if ((total_runtime % 4) == 1)
     {                                         // every 4 hours
       total_runtime = total_runtime & 0xFFFF; // prevent overload
-      eeprom_writeInt(EE_ADDR_total_runtime, total_runtime);
+      eeprom_updateInt(EE_ADDR_total_runtime, total_runtime);
     }
   }
 
@@ -1067,7 +1067,7 @@ void checkModbus()
     if (holdingRegs[MODBUS_ID] != modbusID && holdingRegs[MODBUS_ID] > 0 && holdingRegs[MODBUS_ID] < 248)
     {
       modbusID = holdingRegs[MODBUS_ID];
-      eeprom_writeInt(EE_ADDR_modbus_ID, modbusID);
+      eeprom_updateInt(EE_ADDR_modbus_ID, modbusID);
     }
 
     if (holdingRegs[MODBUS_SPEED] * 100 != modbusSpeed)
@@ -1087,7 +1087,7 @@ void checkModbus()
       case 57600:
       case 115200:
         modbusSpeed = holdingRegs[MODBUS_SPEED] * 100;
-        eeprom_writeInt(EE_ADDR_modbus_Speed, modbusSpeed / 100);
+        eeprom_updateInt(EE_ADDR_modbus_Speed, modbusSpeed / 100);
         break;
       default:
         break;
@@ -1103,7 +1103,7 @@ void checkModbus()
       case SERIAL_8O1:
       case SERIAL_8N2:
         modbusFormat = holdingRegs[MODBUS_FORMAT];
-        eeprom_writeInt(EE_ADDR_modbus_Format, modbusFormat);
+        eeprom_updateInt(EE_ADDR_modbus_Format, modbusFormat);
         break;
       default:
         break;
@@ -1120,7 +1120,7 @@ void checkModbus()
   if (holdingRegs[SET] != set && holdingRegs[SET] < 4)
   { // RELAY = 3 (REL1 || REL2), MAN1 = 1, MAN2 = 2
     set = holdingRegs[SET];
-    eeprom_writeInt(EE_ADDR_set, set);
+    eeprom_updateInt(EE_ADDR_set, set);
   }
 
   if (holdingRegs[GAIN_SET1] != pga1 * 100)
@@ -1135,7 +1135,7 @@ void checkModbus()
     case 3200:
     case 6400:
       pga1 = holdingRegs[GAIN_SET1] / 100;
-      eeprom_writeInt(EE_ADDR_gain_set1, pga1);
+      eeprom_updateInt(EE_ADDR_gain_set1, pga1);
       break;
     default:
       break;
@@ -1145,7 +1145,7 @@ void checkModbus()
   if (holdingRegs[THRESHOLD_SET1] != thre1 && holdingRegs[THRESHOLD_SET1] >= 2000 && holdingRegs[THRESHOLD_SET1] <= 8000)
   {
     thre1 = holdingRegs[THRESHOLD_SET1] / 100;
-    eeprom_writeInt(EE_ADDR_threshold_set1, thre1);
+    eeprom_updateInt(EE_ADDR_threshold_set1, thre1);
   }
 
   if (holdingRegs[GAIN_SET2] != pga2)
@@ -1160,7 +1160,7 @@ void checkModbus()
     case 3200:
     case 6400:
       pga2 = holdingRegs[GAIN_SET2] / 100;
-      eeprom_writeInt(EE_ADDR_gain_set2, pga2);
+      eeprom_updateInt(EE_ADDR_gain_set2, pga2);
       break;
     default:
       break;
@@ -1170,25 +1170,25 @@ void checkModbus()
   if (holdingRegs[THRESHOLD_SET2] != thre2 && holdingRegs[THRESHOLD_SET2] >= 2000 && holdingRegs[THRESHOLD_SET2] <= 8000)
   {
     thre2 = holdingRegs[THRESHOLD_SET2] / 100;
-    eeprom_writeInt(EE_ADDR_threshold_set2, thre2);
+    eeprom_updateInt(EE_ADDR_threshold_set2, thre2);
   }
 
   if (holdingRegs[WINDOW_BEGIN] != (windowBegin * 100) && holdingRegs[WINDOW_BEGIN] >= 500 && holdingRegs[WINDOW_BEGIN] <= 4500)
   {
     windowBegin = holdingRegs[WINDOW_BEGIN] / 100;
-    eeprom_writeInt(EE_ADDR_window_begin, windowBegin);
+    eeprom_updateInt(EE_ADDR_window_begin, windowBegin);
   }
 
   if (holdingRegs[WINDOW_END] != (windowEnd * 100) && holdingRegs[WINDOW_END] >= 5500 && holdingRegs[WINDOW_END] <= 9500)
   {
     windowEnd = holdingRegs[WINDOW_END] / 100;
-    eeprom_writeInt(EE_ADDR_window_end, windowEnd);
+    eeprom_updateInt(EE_ADDR_window_end, windowEnd);
   }
 
   if (holdingRegs[POSITION_MODE] != positionMode && holdingRegs[POSITION_MODE] < 5)
   {
     positionMode = holdingRegs[POSITION_MODE];
-    eeprom_writeInt(EE_ADDR_position_mode, positionMode);
+    eeprom_updateInt(EE_ADDR_position_mode, positionMode);
   }
 
   if (holdingRegs[ANALOG_OUT_MODE] != analogOutMode)
@@ -1200,7 +1200,7 @@ void checkModbus()
     case 0x0505:
     case 0x0101:
       analogOutMode = holdingRegs[ANALOG_OUT_MODE];
-      eeprom_writeInt(EE_ADDR_analog_out_mode, analogOutMode);
+      eeprom_updateInt(EE_ADDR_analog_out_mode, analogOutMode);
       break;
     default:
       break;
@@ -1210,7 +1210,7 @@ void checkModbus()
   if (holdingRegs[POSITION_OFFSET] != positionOffset && holdingRegs[POSITION_OFFSET] >= 0 && holdingRegs[POSITION_OFFSET] <= 2000)
   {
     positionOffset = holdingRegs[POSITION_OFFSET];
-    eeprom_writeInt(EE_ADDR_position_offset, positionOffset);
+    eeprom_updateInt(EE_ADDR_position_offset, positionOffset);
 
     // SCB_AIRCR = 0x05FA0004;        // software reset
 
@@ -1223,19 +1223,19 @@ void checkModbus()
   if (holdingRegs[FILTER_POSITION] != filterPosition && holdingRegs[FILTER_POSITION] < 10000)
   {
     filterPosition = holdingRegs[FILTER_POSITION];
-    eeprom_writeInt(EE_ADDR_filter_position, filterPosition);
+    eeprom_updateInt(EE_ADDR_filter_position, filterPosition);
   }
 
   if (holdingRegs[FILTER_ON] != filterOn && holdingRegs[FILTER_ON] < 10000)
   {
     filterOn = holdingRegs[FILTER_ON];
-    eeprom_writeInt(EE_ADDR_filter_on, filterOn);
+    eeprom_updateInt(EE_ADDR_filter_on, filterOn);
   }
 
   if (holdingRegs[FILTER_OFF] != filterOff && holdingRegs[FILTER_OFF] < 10000)
   {
     filterOff = holdingRegs[FILTER_OFF];
-    eeprom_writeInt(EE_ADDR_filter_off, filterOff);
+    eeprom_updateInt(EE_ADDR_filter_off, filterOff);
   }
 
   if (holdingRegs[IO_STATE] != io_state)
