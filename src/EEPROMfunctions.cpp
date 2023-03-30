@@ -4,30 +4,6 @@
 
 #include "Variables.h"
 #include "EEPROMfunctions.h"
-volatile uint16_t modbusID = 0;
-
-volatile uint16_t actualSpeed = 0; // array index
-volatile uint32_t modbusSpeed = 0; // default 19200
-volatile uint16_t actualFormat = 0;
-volatile uint16_t modbusFormat = 0;
-
-boolean dataSent = false;
-int sendNextLn = 0;
-volatile uint16_t io_state = 0;
-unsigned long exectime = 0;
-unsigned long pulsetime = 0;
-
-volatile uint16_t windowBegin = 0, windowEnd = 0, positionOffset = 0, positionMode = 0, analogOutMode = 0;
-volatile uint16_t filterPosition = 0, filterOn = 0, filterOff = 0;
-
-volatile uint16_t thre256 = 0, thre = 0, thre1 = 0, thre2 = 0;
-volatile uint16_t set = 0, pga = 0, pga1 = 0, pga2 = 0;
-
-// diagnosis
-volatile uint16_t celsius = 0; // internal temp in deg of Celsius
-volatile uint16_t temp = 0;    // internal ADC Temp channel value
-volatile uint16_t max_temperature = 0;
-volatile uint16_t total_runtime = 0;
 
 // EEPROM
 
@@ -35,11 +11,13 @@ volatile uint16_t total_runtime = 0;
 void eeprom_writeInt(uint16_t address, uint16_t value)
 {
   __disable_irq();
-  EEPROM.write(address, value & 0xFF);     // LSB
+  EEPROM.write(address, value & 0xFF);   // LSB
   EEPROM.write(address + 1, value >> 8); // MSB
-  Serial.printf("EEwr %u: %u \n", address, value);
+#if defined(SERIAL_DEBUG)
+  Serial.printf("EEwr a: %u w: %u r: %u\n", address, value, eeprom_readInt(address));
+#endif
   __enable_irq();
-#if defined(__IMXRT1062__)                // Teensy 4.0
+#if defined(__IMXRT1062__) // Teensy 4.0
   asm("DSB");
 #endif
 }
@@ -47,11 +25,13 @@ void eeprom_writeInt(uint16_t address, uint16_t value)
 void eeprom_updateInt(uint16_t address, uint16_t value)
 {
   __disable_irq();
-  EEPROM.update(address, value & 0xFF);     // LSB
-  EEPROM.update(address + 1, value >> 8); 
-  Serial.printf("EEupd %u: %u \n", address, value);
+  EEPROM.update(address, value & 0xFF); // LSB
+  EEPROM.update(address + 1, value >> 8);
+#if defined(SERIAL_DEBUG)
+  Serial.printf("EEupd a: %u w: %u r: %u\n", address, value, eeprom_readInt(address));
+#endif
   __enable_irq();
-#if defined(__IMXRT1062__)                 // Teensy 4.0
+#if defined(__IMXRT1062__) // Teensy 4.0
   asm("DSB");
 #endif
 }
@@ -59,9 +39,8 @@ void eeprom_updateInt(uint16_t address, uint16_t value)
 // read a unsigned int (two bytes) value from eeprom
 uint16_t eeprom_readInt(uint16_t address)
 {
-  // Serial.printf("EEread: %u \n", address);
   return EEPROM.read(address) | (EEPROM.read(address + 1) << 8);
-  
+
 #if defined(__IMXRT1062__) // Teensy 4.0
   asm("DSB");
 #endif
@@ -69,16 +48,6 @@ uint16_t eeprom_readInt(uint16_t address)
 
 void EEPROM_init()
 {
-  EEPROM.begin();
-
-  int address = 0;
-  while (address < 64) {
-    Serial.printf( "%u: %u", address, EEPROM.read(address) | EEPROM.read(address+1)<<8);
-    Serial.println();
-    address++;
-    address++;
-  }
-
   if (
       eeprom_readInt(EE_ADDR_MODEL_TYPE) == MODEL_TYPE &&
       eeprom_readInt(EE_ADDR_MODEL_SERIAL_NUMBER) == MODEL_SERIAL_NUMBER &&
@@ -93,6 +62,7 @@ void EEPROM_init()
     config_writeDefaultsToEEPROM();
     config_loadFromEEPROM();
   }
+
 #if defined(__IMXRT1062__) // Teensy 4.0
   asm("DSB");
 #endif
@@ -123,6 +93,7 @@ void config_loadFromEEPROM()
 
   max_temperature = eeprom_readInt(EE_ADDR_max_temperature);
   total_runtime = eeprom_readInt(EE_ADDR_total_runtime);
+
 #if defined(__IMXRT1062__) // Teensy 4.0
   asm("DSB");
 #endif
@@ -138,7 +109,7 @@ void config_writeDefaultsToEEPROM()
   // save defaults to eeprom
   eeprom_writeInt(EE_ADDR_modbus_ID, DEFAULT_MODBUS_ID);
   eeprom_writeInt(EE_ADDR_modbus_Speed, DEFAULT_MODBUS_SPEED / 100); // speed/100 to fit 115200 in WORD
-  eeprom_writeInt(EE_ADDR_modbus_Format, DEFAULT_MODBUS_FORMAT);
+  eeprom_writeInt(EE_ADDR_modbus_Format, (uint16_t)DEFAULT_MODBUS_FORMAT);
 
   eeprom_writeInt(EE_ADDR_set, DEFAULT_SET);
   eeprom_writeInt(EE_ADDR_gain_set1, DEFAULT_GAIN_SET1);

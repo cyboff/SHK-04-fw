@@ -2,6 +2,75 @@
 #ifndef __Variables_H
 #define __Variables_H
 
+#define SERIAL_DEBUG
+
+//defaults EEPROM
+#define MODEL_TYPE 50
+#define MODEL_SERIAL_NUMBER 23001
+#define FW_VERSION 234           
+
+#define DEFAULT_MODBUS_ID MODEL_SERIAL_NUMBER % 1000 % 247 // MODBUS ID slave (range 1..247)
+#define DEFAULT_MODBUS_SPEED 19200
+#define DEFAULT_MODBUS_FORMAT SERIAL_8N1
+
+#define DEFAULT_SET 3             // RELAY = 3 (REL1 || REL2), MAN1 = 1, MAN2 = 2
+#define DEFAULT_GAIN_SET1 16      // valid values 1,2,4,8,16,32,64
+#define DEFAULT_THRESHOLD_SET1 50 // min 20, max 80
+#define DEFAULT_GAIN_SET2 32
+#define DEFAULT_THRESHOLD_SET2 50
+
+#if MODEL_TYPE == 10
+#define DEFAULT_WINDOW_BEGIN 45 // min 5, max 45
+#define DEFAULT_WINDOW_END 55   // min 55 max 95
+#elif MODEL_TYPE == 30
+#define DEFAULT_WINDOW_BEGIN 35 // min 5, max 45
+#define DEFAULT_WINDOW_END 65   // min 55 max 95
+#else // MODEL_TYPE == 50
+#define DEFAULT_WINDOW_BEGIN 20 // min 5, max 45
+#define DEFAULT_WINDOW_END 80   // min 55 max 95
+#endif
+
+#define DEFAULT_POSITION_MODE 4     // rising = 1, falling = 2, peak = 3, hmd = 4
+#define DEFAULT_ANALOG_OUT_MODE 0x0501   // an1/an2: "1Int 2Pos" = 0x0501, "1Pos 2Int" = 0x0105, "1Int 2Int" = 0x0505, "1Pos 2Pos" = 0x0101
+#define DEFAULT_POSITION_OFFSET 250 // min 5, max 95 to avoid coincidence with pulse interrupts
+
+#define DEFAULT_FILTER_POSITION 6 // range 0 - 9999 ms (or nr of mirrors) for moving average
+#define DEFAULT_FILTER_ON 0       // range 0 - 9999 ms
+#define DEFAULT_FILTER_OFF 0      // range 0 - 9999 ms
+
+// EEPROM Addresses (all values are WORD for easy Modbus transfers)
+
+// EEPROM Addresses for signature code and version of firmware
+#define EE_ADDR_MODEL_TYPE 0          // WORD 
+#define EE_ADDR_MODEL_SERIAL_NUMBER 2 // WORD
+#define EE_ADDR_FW_VERSION 4          // WORD
+
+// EEPROM Addresses for config
+#define EE_ADDR_modbus_ID 6     // WORD
+#define EE_ADDR_modbus_Speed 8  // WORD  // baudrate/100 to fit 115200 to WORD
+#define EE_ADDR_modbus_Format 10 // WORD
+
+#define EE_ADDR_set 12            // WORD  // RELAY = 3 (REL1 || REL2), MAN1 = 1, MAN2 = 2
+#define EE_ADDR_gain_set1 14      // WORD
+#define EE_ADDR_threshold_set1 16 // WORD
+#define EE_ADDR_gain_set2 18      // WORD
+#define EE_ADDR_threshold_set2 20 // WORD
+
+#define EE_ADDR_window_begin 22    // WORD
+#define EE_ADDR_window_end 24      // WORD
+#define EE_ADDR_position_mode 26   // WORD  // positionMode: RISE = 1, FALL = 2, PEAK = 3, HMD = 4
+#define EE_ADDR_analog_out_mode 28 // WORD  // an1/an2: "1Int 2Pos" = 0501, "1Pos 2Int" = 0x0105, "1Int 2Int" = 0x0505, "1Pos 2Pos" = 0x0101
+#define EE_ADDR_position_offset 30 // WORD  // offset for position
+
+#define EE_ADDR_filter_position 32 // WORD  // range 0 - 9999 ms
+#define EE_ADDR_filter_on 34       // WORD  // range 0 - 9999 ms
+#define EE_ADDR_filter_off 36      // WORD  // range 0 - 9999 ms
+
+// EEPROM Addresses for diagnosis
+#define EE_ADDR_max_temperature 38 // WORD
+#define EE_ADDR_total_runtime 40   // WORD
+
+
 // TEENSY4.0 pin assignment
 #define FILTER_PIN 33 // not connected, for internal use of Bounce2 library filter - SIGNAL PRESENT filter ON/OFF
 
@@ -47,7 +116,7 @@
 #define MOTOR_CLK 16    //motor speed clock
 
 // Timeout definitions
-#define TIMEOUT_LASER 1200000
+#define TIMEOUT_LASER 1200000 // 10 min
 #define TIMEOUT_TEST 600000 // 5 min
 
 extern volatile boolean alarmChecked;
@@ -160,11 +229,8 @@ const uint16_t modbusFormatArray[] = {SERIAL_8N1, SERIAL_8E1, SERIAL_8O1, SERIAL
 extern volatile uint16_t actualFormat;
 extern volatile uint16_t modbusFormat;
 
-extern boolean dataSent;
-extern int sendNextLn;
+
 extern volatile uint16_t io_state;
-extern unsigned long exectime;
-extern unsigned long pulsetime;
 
 extern uint16_t holdingRegs[TOTAL_REGS_SIZE]; // function 3 and 16 register array
 
