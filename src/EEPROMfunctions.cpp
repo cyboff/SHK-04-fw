@@ -12,38 +12,28 @@ void eeprom_writeInt(uint16_t address, uint16_t value)
 {
   __disable_irq();
   EEPROM.write(address, value & 0xFF);   // LSB
-  EEPROM.write(address + 1, value >> 8); // MSB
+  EEPROM.write(address + 1, (value >> 8) & 0xFF); // MSB
 #if defined(SERIAL_DEBUG)
   Serial.printf("EEwr a: %u w: %u r: %u\n", address, value, eeprom_readInt(address));
 #endif
   __enable_irq();
-#if defined(__IMXRT1062__) // Teensy 4.0
-  asm("DSB");
-#endif
 }
 
 void eeprom_updateInt(uint16_t address, uint16_t value)
 {
   __disable_irq();
   EEPROM.update(address, value & 0xFF); // LSB
-  EEPROM.update(address + 1, value >> 8);
+  EEPROM.update(address + 1, (value >> 8) & 0xFF);
 #if defined(SERIAL_DEBUG)
   Serial.printf("EEupd a: %u w: %u r: %u\n", address, value, eeprom_readInt(address));
 #endif
   __enable_irq();
-#if defined(__IMXRT1062__) // Teensy 4.0
-  asm("DSB");
-#endif
 }
 
 // read a unsigned int (two bytes) value from eeprom
 uint16_t eeprom_readInt(uint16_t address)
 {
   return EEPROM.read(address) | (EEPROM.read(address + 1) << 8);
-
-#if defined(__IMXRT1062__) // Teensy 4.0
-  asm("DSB");
-#endif
 }
 
 void EEPROM_init()
@@ -62,10 +52,6 @@ void EEPROM_init()
     config_writeDefaultsToEEPROM();
     config_loadFromEEPROM();
   }
-
-#if defined(__IMXRT1062__) // Teensy 4.0
-  asm("DSB");
-#endif
 }
 
 void config_loadFromEEPROM()
@@ -91,12 +77,8 @@ void config_loadFromEEPROM()
   filterOn = eeprom_readInt(EE_ADDR_filter_on);
   filterOff = eeprom_readInt(EE_ADDR_filter_off);
 
-  max_temperature = eeprom_readInt(EE_ADDR_max_temperature);
+  max_temperature = (uint8_t)eeprom_readInt(EE_ADDR_max_temperature);
   total_runtime = eeprom_readInt(EE_ADDR_total_runtime);
-
-#if defined(__IMXRT1062__) // Teensy 4.0
-  asm("DSB");
-#endif
 }
 
 void config_writeDefaultsToEEPROM()
@@ -129,9 +111,6 @@ void config_writeDefaultsToEEPROM()
 
   eeprom_writeInt(EE_ADDR_max_temperature, max_temperature);
   eeprom_writeInt(EE_ADDR_total_runtime, total_runtime);
-#if defined(__IMXRT1062__) // Teensy 4.0
-  asm("DSB");
-#endif
 }
 
 void reset_writeDefaultsToEEPROM()
@@ -164,7 +143,4 @@ void reset_writeDefaultsToEEPROM()
 
 // eeprom_writeInt(EE_ADDR_max_temperature, max_temperature);
 // eeprom_writeInt(EE_ADDR_total_runtime, total_runtime);
-#if defined(__IMXRT1062__) // Teensy 4.0
-  asm("DSB");
-#endif
 }

@@ -23,7 +23,7 @@
 #include "EEPROMfunctions.h"
 #include "DisplayMenus.h"
 
-uint16_t holdingRegs[TOTAL_REGS_SIZE] = {}; // function 3 and 16 register array
+uint16_t holdingRegs[TOTAL_REGS_SIZE] = {0}; // function 3 and 16 register array
 
 volatile uint16_t modbusID = 0;
 
@@ -41,9 +41,9 @@ volatile uint16_t thre256 = 0, thre = 0, thre1 = 0, thre2 = 0;
 volatile uint16_t set = 0, pga = 0, pga1 = 0, pga2 = 0;
 
 // diagnosis
-volatile uint16_t celsius = 0; // internal temp in deg of Celsius
-volatile uint16_t temp = 0;    // internal ADC Temp channel value
-volatile uint16_t max_temperature = 0;
+volatile uint8_t celsius = 0; // internal temp in deg of Celsius
+volatile uint16_t temp = 0;   // internal ADC Temp channel value
+volatile uint8_t max_temperature = 0;
 volatile uint16_t total_runtime = 0;
 
 // Keyboard times
@@ -66,9 +66,8 @@ ADC *adc = new ADC(); // adc object
 DMAChannel adc0_dma;
 
 DMAMEM static volatile uint16_t __attribute__((aligned(32))) adc0_buf[ANALOG_BUFFER_SIZE]; // buffer 1...
-volatile uint8_t adc_data[ANALOG_BUFFER_SIZE];                                             // ADC_0 9-bit resolution for differential - sign + 8 bit
-volatile uint16_t value_buffer[25] = {};
-// volatile int value_peak[ANALOG_BUFFER_SIZE];
+volatile uint8_t adc_data[ANALOG_BUFFER_SIZE] = {0};                                       // ADC_0 9-bit resolution for differential - sign + 8 bit
+volatile uint16_t value_buffer[25] = {0};
 volatile boolean adc0_busy = false;
 unsigned int freq = 400000;         // PDB frequency
 volatile int adc0Value = 0;         // analog value
@@ -137,7 +136,6 @@ long approxSimpleMovingAverage(int new_value, int period);
 void checkSTATUS();
 void checkModbus();
 
-
 void setup()
 {
 #if defined(SERIAL_DEBUG)
@@ -147,10 +145,16 @@ void setup()
   Serial.println("Starting");
 
   // print all used EEPROM words
-  Serial.print("EEread: ");
-  for (int i=0; i<21; i++) 
+  Serial.print("EEreadS: ");
+  for (int i = 0; i < 21; i++)
   {
-    Serial.printf("%2u:%5hu|",i*2, EEPROM.read(i*2) | EEPROM.read(i*2 + 1) << 8);
+    Serial.printf("%u ", EEPROM.read(i * 2) | EEPROM.read(i * 2 + 1) << 8);
+  }
+  Serial.println();
+  Serial.print("hRegS: ");
+  for (int i = 0; i < TOTAL_REGS_SIZE; i++)
+  {
+    Serial.printf("%u ", holdingRegs[i]);
   }
   Serial.println();
 #endif
@@ -217,10 +221,12 @@ void setup()
 
   holdingRegs[EXEC_TIME] = 0;
 
-  // Serial.begin(modbusSpeed);
+  // Serial1.begin(modbusSpeed);
+  // Serial1.flush();
+  // Serial1.end();
 
   // modbus_configure(modbusSpeed, modbusFormat, modbusID, TXEN, TOTAL_REGS_SIZE, 0);
-  modbus_configure(modbusSpeed, modbusFormat, modbusID, TXEN, 1100, 0); // for compatibility with old SDIS
+  modbus_configure(modbusSpeed, modbusFormat, modbusID, TXEN, 1080, 0); // max address is 1080 in old SDIS protocol
 
   // initialize ADC
 
@@ -234,7 +240,7 @@ void setup()
   adc->adc0->setConversionSpeed(ADC_CONVERSION_SPEED::VERY_HIGH_SPEED); // change the conversion speed
   // it can be ADC_VERY_LOW_SPEED, ADC_LOW_SPEED, ADC_MED_SPEED, ADC_HIGH_SPEED or ADC_VERY_HIGH_SPEED
   adc->adc0->setSamplingSpeed(ADC_SAMPLING_SPEED::VERY_HIGH_SPEED); // change the sampling speed
-  
+
   // Lets setup Analog 0 dma
   adc0_dma.begin();
   adc0_dma.source((volatile uint16_t &)ADC1_R0);
@@ -275,15 +281,17 @@ void setup()
     delay(150);
   }
 
-   // buttons
+  // buttons
   attachInterrupt(digitalPinToInterrupt(PIN_BTN_A), checkButtonA, CHANGE);
   attachInterrupt(digitalPinToInterrupt(PIN_BTN_B), checkButtonB, CHANGE);
   attachInterrupt(digitalPinToInterrupt(PIN_BTN_C), checkButtonC, CHANGE);
   attachInterrupt(digitalPinToInterrupt(PIN_BTN_D), checkButtonD, CHANGE);
 
-  // clear data buffers
-  memset((void *)adc0_buf, 0, sizeof(adc0_buf));
-  memset((void *)adc_data, 0, sizeof(adc_data));
+  for (int i = 0; i < ANALOG_BUFFER_SIZE; i++)
+  {
+    adc0_buf[i] = 0;
+    adc_data[i] = 0;
+  }
   // Teensy 4.0 not working without clearing cache
   if ((uint32_t)adc0_buf >= 0x20200000u)
     arm_dcache_flush_delete((void *)adc0_buf, sizeof(adc0_buf));
@@ -299,16 +307,22 @@ void loop()
 
 #if defined(SERIAL_DEBUG)
   // print all used EEPROM words
-  if (!testTimeout) 
+  if (!testTimeout)
   {
-  Serial.print("EEread: ");
-  for (int i=0; i<21; i++) 
-  {
-    Serial.printf("%2u:%5hu|",i*2, EEPROM.read(i*2) | EEPROM.read(i*2 + 1) << 8);
-  }
-  Serial.println();
+    Serial.print("EEreadL: ");
+    for (int i = 0; i < 21; i++)
+    {
+      Serial.printf("%u ", EEPROM.read(i * 2) | EEPROM.read(i * 2 + 1) << 8);
+    }
+    Serial.println();
+    Serial.print("hRegL: ");
+    for (int i = 0; i < TOTAL_REGS_SIZE; i++)
+    {
+      Serial.printf("%u ", holdingRegs[i]);
+    }
+    Serial.println();
 
-  testTimeout = 5000;  // 5 sec
+    testTimeout = 5000; // 5 sec
   }
 #endif
 
@@ -390,11 +404,14 @@ void checkALARM()
   // temp = adc->adc1->readSingle();
   // celsius = (181964504 - 69971 * temp12) >> 12 ; //Vref 1.2
   // celsius = 25.0 + 0.46977 * (892.43 - temp); // Vref 3.3
-  celsius = (uint16_t)tempmonGetTemp();
-  if (celsius > max_temperature)
+  if (!refreshMenuTimeout)
   {
-    max_temperature = celsius & 0xFFFF;
-    eeprom_writeInt(EE_ADDR_max_temperature, (uint16_t)max_temperature);
+    celsius = (uint8_t)tempmonGetTemp();
+    if (celsius > max_temperature)
+    {
+      max_temperature = celsius & 0xFF;
+      eeprom_writeInt(EE_ADDR_max_temperature, (uint16_t)max_temperature);
+    }
   }
 
   // check runtime
@@ -464,7 +481,7 @@ void checkALARM()
 //****************************************************************
 
 // SPI send 2 x 16 bit value
-FASTRUN void updateSPI(int valueAN1, int valueAN2)
+void updateSPI(int valueAN1, int valueAN2)
 {
   // gain control of the SPI port
   // and configure settings
@@ -481,7 +498,7 @@ FASTRUN void updateSPI(int valueAN1, int valueAN2)
 
 // button interrupts
 //*****************************************************************
-FASTRUN void checkButtonA()
+void checkButtonA()
 {
   if (digitalReadFast(PIN_BTN_A))
   {
@@ -496,7 +513,7 @@ FASTRUN void checkButtonA()
 }
 
 //*****************************************************************
-FASTRUN void checkButtonB()
+void checkButtonB()
 {
   if (digitalReadFast(PIN_BTN_B))
   {
@@ -511,7 +528,7 @@ FASTRUN void checkButtonB()
 }
 
 //*****************************************************************
-FASTRUN void checkButtonC()
+void checkButtonC()
 {
   if (digitalReadFast(PIN_BTN_C))
   {
@@ -526,7 +543,7 @@ FASTRUN void checkButtonC()
 }
 
 //*****************************************************************
-FASTRUN void checkButtonD()
+void checkButtonD()
 {
   if (digitalReadFast(PIN_BTN_D))
   {
@@ -542,7 +559,7 @@ FASTRUN void checkButtonD()
 
 //*****************************************************************
 // Timer interrupts
-FASTRUN void timer500us_isr(void)
+void timer500us_isr(void)
 { // every 500us
   // motor pulse
   digitalToggleFast(MOTOR_CLK);
@@ -657,7 +674,7 @@ FASTRUN void timer500us_isr(void)
 }
 
 // motor (from HALL sensor) interrupt
-FASTRUN void motor_isr(void)
+void motor_isr(void)
 {
   motorPulseIndex++;
 
@@ -683,7 +700,7 @@ FASTRUN void motor_isr(void)
 #endif
 }
 
-FASTRUN void callback_delay_isr()
+void callback_delay_isr()
 {
   timerDelay.end();
   if (!adc0_busy) // previous ADC conversion ended
@@ -712,28 +729,11 @@ FASTRUN void callback_delay_isr()
       break;
     }
 
-    // adc0_busy = 1;
-    // Serial.printf("%x %x\n", (uint32_t)adc0_buf, (uint32_t)adc_data );
-
-    // update PGA only Teensy 3.2
-    // adc->adc0->enablePGA(pga);
-    // adc->analogReadDifferential(A10, A11, ADC_0); // start ADC_0 differential - to use PGA
-    // adc0_dma.enable();
-
-    memset((void *)adc0_buf, 0, sizeof(adc0_buf)); // clear DMA buffer
-
     // Teensy 4.0 not working without clearing cache
     if ((uint32_t)adc0_buf >= 0x20200000u)
       arm_dcache_flush_delete((void *)adc0_buf, sizeof(adc0_buf));
 
-    // adc->adc0->startSingleRead(A10); // PGA is not working in single channel mode, Teensy 4.0 does not have differential inputs
-    // //NVIC_DISABLE_IRQ(IRQ_PDB);
-    // // Serial.println("Start PDB");
-    // adc->adc0->enableDMA();
-
     adc0_dma.enable();
-    // adc->adc0->startSingleRead(ANALOG_INPUT);
-    // adc->adc0->startQuadTimer(freq); // check ADC_Module::startPDB() in ADC_Module.cpp for //NVIC_ENABLE_IRQ(IRQ_PDB);
     adc0_busy = true;
     updateResults(); // update outputs from adc_data[] during next ADC conversion
     holdingRegs[EXEC_TIME] = micros() - exectime;
@@ -748,23 +748,9 @@ FASTRUN void callback_delay_isr()
 #endif
 }
 
-FASTRUN void adc0_dma_isr(void)
+void adc0_dma_isr(void)
 {
-  // adc->adc0->stopQuadTimer();
-  // adc->adc0->disableDMA();
-
-  // adc0_dma.disable();
   adc0_dma.clearInterrupt();
-  // adc0_dma.clearComplete();
-  // Serial.println("DMA interrupt");
-  // PDB0_CH1C1 = 0; // clear PDB channel control register - should be implemented in stopPDB() only Teensy 3.2
-  // PDB0_CH0C1 = 0;
-
-  // adc->adc0->stopPDB();
-
-  // Teensy 4.0 not working without clearing cache
-  // if ((uint32_t)adc0_buf >= 0x20200000u)
-  //   arm_dcache_delete((void *)adc0_buf, sizeof(adc0_buf));
 
   for (int i = 0; i < ANALOG_BUFFER_SIZE; i++) // copy DMA buffer
   {
@@ -778,10 +764,6 @@ FASTRUN void adc0_dma_isr(void)
 
     // Serial.printf("%u: %u %u ", i, adc0_buf[i], adc_data[i]);
   }
-  // if (adc0_dma.error()) {
-  //   Serial.println("dma error");
-  //   adc0_dma.clearError();
-  // }
 
   // updateResults();
 
@@ -793,7 +775,7 @@ FASTRUN void adc0_dma_isr(void)
 #endif
 }
 
-FASTRUN void updateResults()
+void updateResults()
 {
   int hmdThreshold = 0;
   int winBegin = 0;
@@ -955,24 +937,24 @@ FASTRUN void updateResults()
 
   // warning! SPI makes noise, do not send data through SPI when ADC is running
 
-  switch (analogOutMode)
-  { // an1/an2: "1Int 2Pos" = 0x0501, "1Pos 2Int" = 0x0105, "1Int 2Int" = 0x0505, "1Pos 2Pos" = 0x0101
-  case 0x0501:
-    updateSPI(peakValue, positionValue); // range is 2x 16bit
-    break;
-  case 0x0105:
-    updateSPI(positionValue, peakValue);
-    break;
-  case 0x0505:
-    updateSPI(peakValue, peakValue);
-    break;
-  case 0x0101:
-    updateSPI(positionValue, positionValue);
-    break;
-  default:
-    updateSPI(peakValue, positionValue); // range is 2x 16bit
-    break;
-  }
+  // switch (analogOutMode)
+  // { // an1/an2: "1Int 2Pos" = 0x0501, "1Pos 2Int" = 0x0105, "1Int 2Int" = 0x0505, "1Pos 2Pos" = 0x0101
+  // case 0x0501:
+  //   updateSPI(peakValue, positionValue); // range is 2x 16bit
+  //   break;
+  // case 0x0105:
+  //   updateSPI(positionValue, peakValue);
+  //   break;
+  // case 0x0505:
+  //   updateSPI(peakValue, peakValue);
+  //   break;
+  // case 0x0101:
+  //   updateSPI(positionValue, positionValue);
+  //   break;
+  // default:
+  //   updateSPI(peakValue, positionValue); // range is 2x 16bit
+  //   break;
+  // }
 
   // if (dataSent && motorPulseIndex == 0) // prepare data for visualization on PC, only first mirror
   if (dataSent && motorPulseIndex == (filterPosition % 6)) // possibility to view different mirrors by changing positionFilter
@@ -988,7 +970,7 @@ FASTRUN void updateResults()
 }
 
 // exponential moving average
-FASTRUN long approxSimpleMovingAverage(int new_value, int period)
+long approxSimpleMovingAverage(int new_value, int period)
 {
 
   if (filterPosition)
@@ -1049,8 +1031,8 @@ void checkModbus()
   holdingRegs[FILTER_ON] = filterOn;
   holdingRegs[FILTER_OFF] = filterOff;
 
-  holdingRegs[ACT_TEMPERATURE] = celsius * 256;
-  holdingRegs[MAX_TEMPERATURE] = max_temperature * 256;
+  holdingRegs[ACT_TEMPERATURE] = celsius << 8;
+  holdingRegs[MAX_TEMPERATURE] = max_temperature << 8;
   holdingRegs[TOTAL_RUNTIME] = total_runtime;
   holdingRegs[IO_STATE] = io_state;
 
@@ -1072,6 +1054,7 @@ void checkModbus()
     dataSent = true;
   }
 
+  // arm_dcache_flush_delete((void *)holdingRegs, sizeof(holdingRegs));
   holdingRegs[TOTAL_ERRORS] = modbus_update(holdingRegs);
 
   // check changes made via ModBus - if values are valid, save them in EEPROM
@@ -1081,7 +1064,7 @@ void checkModbus()
     if ((holdingRegs[MODBUS_ID] != modbusID) && (holdingRegs[MODBUS_ID] > 0) && (holdingRegs[MODBUS_ID] < 248))
     {
       modbusID = holdingRegs[MODBUS_ID];
-      eeprom_writeInt(EE_ADDR_modbus_ID, (uint16_t)holdingRegs[MODBUS_ID]);
+      eeprom_writeInt(EE_ADDR_modbus_ID, holdingRegs[MODBUS_ID]);
     }
 
     if ((holdingRegs[MODBUS_SPEED] * 100) != modbusSpeed)
@@ -1128,10 +1111,10 @@ void checkModbus()
     Serial1.flush();
     Serial1.end();
     // modbus_configure(modbusSpeed, modbusFormat, modbusID, TXEN, TOTAL_REGS_SIZE, 0);
-    modbus_configure(modbusSpeed, modbusFormat, modbusID, TXEN, 1100, 0); // for compatibility with old SDIS
+    modbus_configure(modbusSpeed, modbusFormat, modbusID, TXEN, 1080, 0); // for compatibility with old SDIS
   }
 
-  if ((holdingRegs[SET] != set) && (holdingRegs[SET] < 4))
+  if ((holdingRegs[SET] != set) && (holdingRegs[SET] > 0) && (holdingRegs[SET] < 4))
   { // RELAY = 3 (REL1 || REL2), MAN1 = 1, MAN2 = 2
     set = holdingRegs[SET];
     eeprom_writeInt(EE_ADDR_set, holdingRegs[SET]);
@@ -1149,7 +1132,7 @@ void checkModbus()
     case 3200:
     case 6400:
       pga1 = holdingRegs[GAIN_SET1] / 100;
-      eeprom_writeInt(EE_ADDR_gain_set1, (uint16_t)pga1);
+      eeprom_writeInt(EE_ADDR_gain_set1, pga1);
       break;
     default:
       break;
@@ -1159,7 +1142,7 @@ void checkModbus()
   if ((holdingRegs[THRESHOLD_SET1] != (thre1 * 100)) && (holdingRegs[THRESHOLD_SET1] >= 2000) && (holdingRegs[THRESHOLD_SET1] <= 8000))
   {
     thre1 = holdingRegs[THRESHOLD_SET1] / 100;
-    eeprom_writeInt(EE_ADDR_threshold_set1, (uint16_t)thre1);
+    eeprom_writeInt(EE_ADDR_threshold_set1, thre1);
   }
 
   if (holdingRegs[GAIN_SET2] != (pga2 * 100))
@@ -1174,7 +1157,7 @@ void checkModbus()
     case 3200:
     case 6400:
       pga2 = holdingRegs[GAIN_SET2] / 100;
-      eeprom_writeInt(EE_ADDR_gain_set2, (uint16_t)pga2);
+      eeprom_writeInt(EE_ADDR_gain_set2, pga2);
       break;
     default:
       break;
@@ -1184,22 +1167,22 @@ void checkModbus()
   if ((holdingRegs[THRESHOLD_SET2] != (thre2 * 100)) && (holdingRegs[THRESHOLD_SET2] >= 2000) && (holdingRegs[THRESHOLD_SET2] <= 8000))
   {
     thre2 = holdingRegs[THRESHOLD_SET2] / 100;
-    eeprom_writeInt(EE_ADDR_threshold_set2, (uint16_t)thre2);
+    eeprom_writeInt(EE_ADDR_threshold_set2, thre2);
   }
 
   if ((holdingRegs[WINDOW_BEGIN] != (windowBegin * 100)) && (holdingRegs[WINDOW_BEGIN] >= 500) && (holdingRegs[WINDOW_BEGIN] <= 4500))
   {
     windowBegin = holdingRegs[WINDOW_BEGIN] / 100;
-    eeprom_writeInt(EE_ADDR_window_begin, (uint16_t)windowBegin);
+    eeprom_writeInt(EE_ADDR_window_begin, windowBegin);
   }
 
   if (holdingRegs[WINDOW_END] != (windowEnd * 100) && (holdingRegs[WINDOW_END] >= 5500) && (holdingRegs[WINDOW_END] <= 9500))
   {
     windowEnd = holdingRegs[WINDOW_END] / 100;
-    eeprom_writeInt(EE_ADDR_window_end, (uint16_t)windowEnd);
+    eeprom_writeInt(EE_ADDR_window_end, windowEnd);
   }
 
-  if ((holdingRegs[POSITION_MODE] != positionMode) && (holdingRegs[POSITION_MODE] < 5))
+  if ((holdingRegs[POSITION_MODE] != positionMode) && (holdingRegs[POSITION_MODE] > 0) && (holdingRegs[POSITION_MODE] < 5))
   {
     positionMode = holdingRegs[POSITION_MODE];
     eeprom_writeInt(EE_ADDR_position_mode, holdingRegs[POSITION_MODE]);
@@ -1224,7 +1207,7 @@ void checkModbus()
   if ((holdingRegs[POSITION_OFFSET] != positionOffset) && (holdingRegs[POSITION_OFFSET] >= 0) && (holdingRegs[POSITION_OFFSET] <= 2000))
   {
     positionOffset = holdingRegs[POSITION_OFFSET];
-    eeprom_writeInt(EE_ADDR_position_offset, (uint16_t)positionOffset);
+    eeprom_writeInt(EE_ADDR_position_offset, positionOffset);
     // SCB_AIRCR = 0x05FA0004;        // software reset
 
     if (positionOffset < 1000) // depends on motor HALL sensors & mirror position - choose the best to have no timing issues
@@ -1236,19 +1219,19 @@ void checkModbus()
   if ((holdingRegs[FILTER_POSITION] != filterPosition) && (holdingRegs[FILTER_POSITION] < 10000))
   {
     filterPosition = holdingRegs[FILTER_POSITION];
-    eeprom_writeInt(EE_ADDR_filter_position, (uint16_t)filterPosition);
+    eeprom_writeInt(EE_ADDR_filter_position, filterPosition);
   }
 
   if ((holdingRegs[FILTER_ON] != filterOn) && (holdingRegs[FILTER_ON] < 10000))
   {
     filterOn = holdingRegs[FILTER_ON];
-    eeprom_writeInt(EE_ADDR_filter_on, (uint16_t)filterOn);
+    eeprom_writeInt(EE_ADDR_filter_on, filterOn);
   }
 
   if ((holdingRegs[FILTER_OFF] != filterOff) && (holdingRegs[FILTER_OFF] < 10000))
   {
     filterOff = holdingRegs[FILTER_OFF];
-    eeprom_writeInt(EE_ADDR_filter_off, (uint16_t)filterOff);
+    eeprom_writeInt(EE_ADDR_filter_off, filterOff);
   }
 
   if (holdingRegs[IO_STATE] != io_state)

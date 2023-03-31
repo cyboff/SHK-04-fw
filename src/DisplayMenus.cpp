@@ -1655,7 +1655,7 @@ void showInfoMenu(void)
   if (currentMenuOption == 2)
     displayPrint("FW %5d", FW_VERSION);
   if (currentMenuOption == 3)
-    displayPrint("Temp %2dC", celsius);
+    displayPrint("CpuT %2dC", celsius);
   if (currentMenuOption == 4)
     displayPrint("MaxT %2dC", max_temperature);
   if (currentMenuOption == 5)

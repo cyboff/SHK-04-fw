@@ -2,7 +2,7 @@
 #ifndef __Variables_H
 #define __Variables_H
 
-#define SERIAL_DEBUG
+// #define SERIAL_DEBUG
 
 //defaults EEPROM
 #define MODEL_TYPE 50
@@ -241,9 +241,9 @@ extern volatile uint16_t thre256, thre, thre1, thre2;
 extern volatile uint16_t set, pga, pga1, pga2;
 
 // diagnosis
-extern volatile uint16_t celsius; // internal temp in deg of Celsius
+extern volatile uint8_t celsius; // internal temp in deg of Celsius
 extern volatile uint16_t temp;    // internal ADC Temp channel value
-extern volatile uint16_t max_temperature;
+extern volatile uint8_t max_temperature;
 extern volatile uint16_t total_runtime;
 
 extern volatile boolean blinkMenu;
