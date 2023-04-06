@@ -782,7 +782,7 @@ void updateResults()
   int winBegin = 0;
   int winEnd = 0;
   // int peakValue = 0;
-  int peak[ANALOG_BUFFER_SIZE] = {};
+  int peak[ANALOG_BUFFER_SIZE] = {0};
   long risingEdgeTime = 0;
   long fallingEdgeTime = 0;
   long peakValueTime = 0;
