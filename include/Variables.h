@@ -232,8 +232,6 @@ extern volatile uint16_t modbusFormat;
 
 extern volatile uint16_t io_state;
 
-extern uint16_t holdingRegs[TOTAL_REGS_SIZE]; // function 3 and 16 register array
-
 extern volatile uint16_t windowBegin, windowEnd, positionOffset, positionMode, analogOutMode;
 extern volatile uint16_t filterPosition, filterOn, filterOff;
 

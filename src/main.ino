@@ -60,7 +60,7 @@ float sma = 0;
 
 // configure ADC
 #define ADC0_AVERAGING 1
-#define ANALOG_BUFFER_SIZE 200
+#define ANALOG_BUFFER_SIZE 500
 
 ADC *adc = new ADC(); // adc object
 DMAChannel adc0_dma;
@@ -69,7 +69,8 @@ DMAMEM static volatile uint16_t __attribute__((aligned(32))) adc0_buf[ANALOG_BUF
 volatile uint8_t adc_data[ANALOG_BUFFER_SIZE] = {0};                                       // ADC_0 9-bit resolution for differential - sign + 8 bit
 volatile uint16_t value_buffer[25] = {0};
 volatile boolean adc0_busy = false;
-unsigned int freq = 400000;         // PDB frequency
+// unsigned int freq = 400000;         // PDB frequency
+unsigned int freq = 1000000;
 volatile int adc0Value = 0;         // analog value
 volatile int analogBufferIndex = 0; // analog buffer pointer
 volatile int delayOffset = 0;
@@ -799,14 +800,14 @@ void updateResults()
     if (!digitalReadFast(FILTER_PIN))
     {
       hmdThreshold = thre256 + hmdThresholdHyst;
-      winBegin = windowBegin * 2;
-      winEnd = windowEnd * 2;
+      winBegin = windowBegin * 5;
+      winEnd = windowEnd * 5;
     }
     else
     {
       hmdThreshold = thre256 - hmdThresholdHyst;
-      winBegin = windowBegin * 2 - 5;
-      winEnd = windowEnd * 2 + 5;
+      winBegin = windowBegin * 5 - 10;
+      winEnd = windowEnd * 5 + 10;
     }
 
     if (i == winBegin)
@@ -827,7 +828,7 @@ void updateResults()
         // HMD mode
         if ((positionMode == 4) && !peakValueTime)
         {
-          peakValueTime = i * 5;
+          peakValueTime = i * 2;
           digitalWriteFast(FILTER_PIN, HIGH); // update internal pin for bounce2 filter
         }
 
@@ -836,7 +837,7 @@ void updateResults()
         {
           if (peak[i - 1] <= hmdThreshold)
           {
-            risingEdgeTime = i * 5;
+            risingEdgeTime = i * 2;
             digitalWriteFast(FILTER_PIN, HIGH); // update internal pin for bounce2 filter
           }
         }
@@ -846,7 +847,7 @@ void updateResults()
         {
           if ((adc_data[i] < thre256 - hmdThresholdHyst) && (!fallingEdgeTime)) // added additional hysteresis to avoid flickering
           {
-            fallingEdgeTime = i * 5;
+            fallingEdgeTime = i * 2;
             digitalWriteFast(FILTER_PIN, HIGH); // update internal pin for bounce2 filter
           }
         }
@@ -856,7 +857,7 @@ void updateResults()
         {
           if (peak[i - 1] + 5 < peakValue) // check for peak
           {
-            peakValueTime = i * 5;
+            peakValueTime = i * 2;
             digitalWriteFast(FILTER_PIN, HIGH); // update internal pin for bounce2 filter
           }
         }
@@ -961,7 +962,7 @@ void updateResults()
   {
     for (int i = 0; i < 25; i++) // MOTOR_TIME_DIFF = AN_VALUES + 25
     {
-      value_buffer[i] = (adc_data[(i * 8) + 4] % 256 << 8) | (adc_data[i * 8] % 256); // MSB = value_buffer[i*8+4] , LSB = value_buffer[i*8] ; only 50 of 200
+      value_buffer[i] = (adc_data[(i * 20) + 10] % 256 << 8) | (adc_data[i * 20] % 256); // MSB = value_buffer[i*8+4] , LSB = value_buffer[i*8] ; only 50 of 200
       // value_buffer[i] = adc_data[i*8];
     }
 
