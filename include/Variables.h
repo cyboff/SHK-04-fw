@@ -6,7 +6,7 @@
 
 //defaults EEPROM
 #define MODEL_TYPE 50
-#define MODEL_SERIAL_NUMBER 23004
+#define MODEL_SERIAL_NUMBER 23003
 #define FW_VERSION 237           
 
 #define DEFAULT_MODBUS_ID MODEL_SERIAL_NUMBER % 1000 % 247 // MODBUS ID slave (range 1..247)
@@ -66,11 +66,11 @@
 
 #define EE_ADDR_filter_position 34 // WORD  // range 0 - 9999 ms
 #define EE_ADDR_filter_on 36       // WORD  // range 0 - 9999 ms
-#define EE_ADDR_filter_off 37      // WORD  // range 0 - 9999 ms
+#define EE_ADDR_filter_off 38      // WORD  // range 0 - 9999 ms
 
 // EEPROM Addresses for diagnosis
-#define EE_ADDR_max_temperature 38 // WORD
-#define EE_ADDR_total_runtime 40   // WORD
+#define EE_ADDR_max_temperature 40 // WORD
+#define EE_ADDR_total_runtime 42   // WORD
 
 
 // TEENSY4.0 pin assignment
