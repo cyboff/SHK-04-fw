@@ -66,6 +66,7 @@ void config_loadFromEEPROM()
   thre1 = eeprom_readInt(EE_ADDR_threshold_set1);
   pga2 = eeprom_readInt(EE_ADDR_gain_set2);
   thre2 = eeprom_readInt(EE_ADDR_threshold_set2);
+  gainOffset = eeprom_readInt(EE_ADDR_gain_offset);  // 0 - 256 
 
   windowBegin = eeprom_readInt(EE_ADDR_window_begin);
   windowEnd = eeprom_readInt(EE_ADDR_window_end);
@@ -98,6 +99,7 @@ void config_writeDefaultsToEEPROM()
   eeprom_writeInt(EE_ADDR_threshold_set1, DEFAULT_THRESHOLD_SET1);
   eeprom_writeInt(EE_ADDR_gain_set2, DEFAULT_GAIN_SET2);
   eeprom_writeInt(EE_ADDR_threshold_set2, DEFAULT_THRESHOLD_SET2);
+  eeprom_writeInt(EE_ADDR_gain_offset, DEFAULT_GAIN_OFFSET);
 
   eeprom_writeInt(EE_ADDR_window_begin, DEFAULT_WINDOW_BEGIN);
   eeprom_writeInt(EE_ADDR_window_end, DEFAULT_WINDOW_END);
@@ -130,6 +132,7 @@ void reset_writeDefaultsToEEPROM()
   eeprom_writeInt(EE_ADDR_threshold_set1, DEFAULT_THRESHOLD_SET1);
   eeprom_writeInt(EE_ADDR_gain_set2, DEFAULT_GAIN_SET2);
   eeprom_writeInt(EE_ADDR_threshold_set2, DEFAULT_THRESHOLD_SET2);
+  eeprom_writeInt(EE_ADDR_gain_offset, DEFAULT_GAIN_OFFSET);
 
   eeprom_writeInt(EE_ADDR_window_begin, DEFAULT_WINDOW_BEGIN);
   eeprom_writeInt(EE_ADDR_window_end, DEFAULT_WINDOW_END);

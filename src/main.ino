@@ -3,6 +3,9 @@
 #include <stdio.h>
 #include <stdarg.h>
 
+// for i2c
+#include <Wire.h>
+
 // for ADC
 #include <ADC.h>
 #include <DMAChannel.h>
@@ -38,7 +41,7 @@ volatile uint16_t windowBegin = 0, windowEnd = 0, positionOffset = 0, positionMo
 volatile uint16_t filterPosition = 0, filterOn = 0, filterOff = 0;
 
 volatile uint16_t thre256 = 0, thre = 0, thre1 = 0, thre2 = 0;
-volatile uint16_t set = 0, pga = 0, pga1 = 0, pga2 = 0;
+volatile uint16_t set = 0, pga = 0, pga1 = 0, pga2 = 0, gainOffset = 0, oldgainOffset = 0;
 
 // diagnosis
 volatile uint8_t celsius = 0; // internal temp in deg of Celsius
@@ -159,6 +162,20 @@ void setup()
   }
   Serial.println();
 #endif
+  Wire.begin(); // initialize Teensy as I2C master
+  Wire.setClock(400000);
+  // initial setup AD5144A
+  // check if chip is responding
+  Wire.beginTransmission(0x2B);
+  int error = Wire.endTransmission();
+  if (!error)
+  {
+    Wire.beginTransmission(0x2B);
+    Wire.write(0x18); // write to all RDAC channels
+    Wire.write(127);  // set wiper to the middle
+    Wire.endTransmission();
+  }
+
   //  initialize LEDs and I/O
 
   // pinMode(LED_BUILTIN, OUTPUT); //conflicts with SPI_CLK!!!
@@ -252,8 +269,8 @@ void setup()
   adc0_dma.attachInterrupt(&adc0_dma_isr);
 
   // Teensy 4.0 uses tempmon instead of ADC
-  tempmon_init();
-  tempmon_Start();
+  // tempmon_init();
+  // tempmon_Start();
 
   // motor configuration and startup
   pinMode(MOTOR_ENABLE, OUTPUT);
@@ -348,6 +365,8 @@ void loop()
 // check SET and load proper settings
 void checkSET()
 {
+  uint16_t oldpga = pga; // save old value to update RDAC only if pga changed
+  
   switch (set) // RELAY = 3 (REL1 || REL2), MAN1 = 1, MAN2 = 2
   {
   case 1:
@@ -377,7 +396,43 @@ void checkSET()
   default:
     break;
   }
-  thre256 = thre * 256 / 100 - 1;
+  thre256 = map(thre, 0, 100, 0, 255);
+
+  if (oldpga != pga )
+  { // update gain: AD5144A RDAC2=pga256 & RDAC4=pga256
+    uint16_t pga256 = map(pga, 0, 100, 0, 255);
+
+    Wire.beginTransmission(0x2B);
+    int error = Wire.endTransmission();
+    if (!error)
+    {
+      Wire.beginTransmission(0x2B);
+      Wire.write(0x11);   // write to RDAC2 (command 1: C0=1; A3,A2,A1 = 0; A0 = 1)
+      Wire.write(pga256); // pga in 8 bit
+      Wire.write(0x13);   // write to RDAC4 (command 1: C0=1; A3,A2 = 0; A1,A0 = 1)
+      Wire.write(pga256); // pga in 8 bit
+      Wire.endTransmission();
+    }
+  }
+
+  if (oldgainOffset != gainOffset )
+  { // update gain: AD5144A RDAC2=pga256 & RDAC4=pga256
+
+    Wire.beginTransmission(0x2B);
+    int error = Wire.endTransmission();
+    if (!error)
+    {
+      Wire.beginTransmission(0x2B);
+      Wire.write(0x10);   // write to RDAC1 
+      Wire.write(gainOffset); // pga in 8 bit
+      Wire.write(0x12);   // write to RDAC3 
+      Wire.write(gainOffset); // pga in 8 bit
+      Wire.endTransmission();
+
+      oldgainOffset = gainOffset; 
+
+    }
+  }
 }
 
 void checkTEST()
@@ -399,15 +454,72 @@ void checkTEST()
     digitalWrite(IR_LED, LOW);
 }
 
+float getI2Ctemperature() // from ADT75
+{
+  unsigned int data[2] = {0};
+
+  // temperature from ADT75 (i2c address 0x48)
+  // // check if chip is responding
+  Wire.beginTransmission(0x48);
+  int error = Wire.endTransmission();
+  if (!error) // ADT75 is responding
+  {
+
+    // Start I2C transmission
+    Wire.beginTransmission(0x48);
+    // Select data register
+    Wire.write(0x00);
+    // Stop I2C transmission
+    Wire.endTransmission();
+
+    // Request 2 byte of data (for precise 12 bit temperature)
+    Wire.requestFrom(0x48, 2);
+
+    // Read 2 bytes of data
+    // temp msb, temp lsb
+    if (Wire.available() == 2)
+    {
+      data[0] = Wire.read();
+      data[1] = Wire.read();
+    }
+
+    // Convert the data to 12 bits
+    int temp = ((data[0] * 256) + data[1]) / 16;
+    if (temp > 2047)
+    {
+      temp -= 4096;
+    }
+
+    // need only MSB 8 bit value = temperature in degC
+    //   Wire.requestFrom(0x48, 1);
+
+    //   if (Wire.available() == 1)
+    //   {
+    //     data[0] = Wire.read();
+    //   }
+
+    // int cTemp = data[0];
+
+    float cTemp = temp * 0.0625;
+
+    return cTemp; // no conversion needed
+  }
+  else
+    return 1; // error
+}
+
 void checkALARM()
 {
-  // check internal temperature
+  // check internal temperature Teensy 3.1
   // temp = adc->adc1->readSingle();
   // celsius = (181964504 - 69971 * temp12) >> 12 ; //Vref 1.2
   // celsius = 25.0 + 0.46977 * (892.43 - temp); // Vref 3.3
   if (!refreshMenuTimeout)
   {
-    celsius = (uint8_t)tempmonGetTemp();
+
+    // celsius = (uint8_t)tempmonGetTemp();  // internal CPU temp Teensy 4.0
+    celsius = (uint8_t)getI2Ctemperature();
+
     if (celsius > max_temperature)
     {
       max_temperature = celsius & 0xFF;

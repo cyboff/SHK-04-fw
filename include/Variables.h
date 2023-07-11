@@ -6,8 +6,8 @@
 
 //defaults EEPROM
 #define MODEL_TYPE 50
-#define MODEL_SERIAL_NUMBER 23001
-#define FW_VERSION 235           
+#define MODEL_SERIAL_NUMBER 23004
+#define FW_VERSION 237           
 
 #define DEFAULT_MODBUS_ID MODEL_SERIAL_NUMBER % 1000 % 247 // MODBUS ID slave (range 1..247)
 #define DEFAULT_MODBUS_SPEED 19200
@@ -18,6 +18,7 @@
 #define DEFAULT_THRESHOLD_SET1 50 // min 20, max 80
 #define DEFAULT_GAIN_SET2 32
 #define DEFAULT_THRESHOLD_SET2 50
+#define DEFAULT_GAIN_OFFSET 127   // gain adjustment via AD5144A RDAC1+RDAC3 
 
 #if MODEL_TYPE == 10
 #define DEFAULT_WINDOW_BEGIN 45 // min 5, max 45
@@ -55,16 +56,17 @@
 #define EE_ADDR_threshold_set1 16 // WORD
 #define EE_ADDR_gain_set2 18      // WORD
 #define EE_ADDR_threshold_set2 20 // WORD
+#define EE_ADDR_gain_offset 22    // WORD
 
-#define EE_ADDR_window_begin 22    // WORD
-#define EE_ADDR_window_end 24      // WORD
-#define EE_ADDR_position_mode 26   // WORD  // positionMode: RISE = 1, FALL = 2, PEAK = 3, HMD = 4
-#define EE_ADDR_analog_out_mode 28 // WORD  // an1/an2: "1Int 2Pos" = 0501, "1Pos 2Int" = 0x0105, "1Int 2Int" = 0x0505, "1Pos 2Pos" = 0x0101
-#define EE_ADDR_position_offset 30 // WORD  // offset for position
+#define EE_ADDR_window_begin 24    // WORD
+#define EE_ADDR_window_end 26      // WORD
+#define EE_ADDR_position_mode 28   // WORD  // positionMode: RISE = 1, FALL = 2, PEAK = 3, HMD = 4
+#define EE_ADDR_analog_out_mode 30 // WORD  // an1/an2: "1Int 2Pos" = 0501, "1Pos 2Int" = 0x0105, "1Int 2Int" = 0x0505, "1Pos 2Pos" = 0x0101
+#define EE_ADDR_position_offset 32 // WORD  // offset for position
 
-#define EE_ADDR_filter_position 32 // WORD  // range 0 - 9999 ms
-#define EE_ADDR_filter_on 34       // WORD  // range 0 - 9999 ms
-#define EE_ADDR_filter_off 36      // WORD  // range 0 - 9999 ms
+#define EE_ADDR_filter_position 34 // WORD  // range 0 - 9999 ms
+#define EE_ADDR_filter_on 36       // WORD  // range 0 - 9999 ms
+#define EE_ADDR_filter_off 37      // WORD  // range 0 - 9999 ms
 
 // EEPROM Addresses for diagnosis
 #define EE_ADDR_max_temperature 38 // WORD
@@ -72,7 +74,7 @@
 
 
 // TEENSY4.0 pin assignment
-#define FILTER_PIN 33 // not connected, for internal use of Bounce2 library filter - SIGNAL PRESENT filter ON/OFF
+#define FILTER_PIN 25 // not connected, for internal use of Bounce2 library filter - SIGNAL PRESENT filter ON/OFF
 
 // assign the Arduino pin that must be connected to RE-DE RS485 transceiver
 #define TXEN 2 // Serial1: RX1=0 TX1=1 TXEN=2
@@ -92,28 +94,28 @@
 
 // LEDs and I/O
 
-#define LED_POWER 17
-#define LED_SIGNAL 18 // now same as OUT_SIGNAL
-#define LED_ALARM 19
+#define LED_POWER 21
+#define LED_SIGNAL 22 // now same as OUT_SIGNAL
+#define LED_ALARM 23
 
-#define ANALOG_INPUT A10
+#define ANALOG_INPUT A0
 
-#define PIN_BTN_A 20 //(digital pin)
-#define PIN_BTN_B 21 //(digital pin)
-#define PIN_BTN_C 22 //(digital pin)
-#define PIN_BTN_D 23 //(digital pin)
+#define PIN_BTN_A 30 //(digital pin)
+#define PIN_BTN_B 31 //(digital pin)
+#define PIN_BTN_C 32 //(digital pin)
+#define PIN_BTN_D 33 //(digital pin)
 
-#define TEST_IN 28
-#define SET_IN 27
+#define TEST_IN 29
+#define SET_IN 28
 
-#define LASER 29
-#define IR_LED 25
+#define LASER 27
+#define IR_LED 26
 #define OUT_SIGNAL_NEG 8
 #define OUT_ALARM_NEG 9 //negative output: 24V=>OK, 0V=>ALARM
 
-#define MOTOR_ALARM 14  //pulses from Hall probe
-#define MOTOR_ENABLE 15 //enable motor rotation
-#define MOTOR_CLK 16    //motor speed clock
+#define MOTOR_ALARM 16  //pulses from Hall probe
+#define MOTOR_ENABLE 17 //enable motor rotation
+#define MOTOR_CLK 20    //motor speed clock
 
 // Timeout definitions
 #define TIMEOUT_LASER 1200000 // 10 min
@@ -236,7 +238,7 @@ extern volatile uint16_t windowBegin, windowEnd, positionOffset, positionMode, a
 extern volatile uint16_t filterPosition, filterOn, filterOff;
 
 extern volatile uint16_t thre256, thre, thre1, thre2;
-extern volatile uint16_t set, pga, pga1, pga2;
+extern volatile uint16_t set, pga, pga1, pga2, gainOffset, oldgainOffset;
 
 // diagnosis
 extern volatile uint8_t celsius; // internal temp in deg of Celsius
