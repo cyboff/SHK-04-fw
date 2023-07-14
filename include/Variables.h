@@ -6,7 +6,7 @@
 
 //defaults EEPROM
 #define MODEL_TYPE 50
-#define MODEL_SERIAL_NUMBER 23003
+#define MODEL_SERIAL_NUMBER 23004
 #define FW_VERSION 237           
 
 #define DEFAULT_MODBUS_ID MODEL_SERIAL_NUMBER % 1000 % 247 // MODBUS ID slave (range 1..247)

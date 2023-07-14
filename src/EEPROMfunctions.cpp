@@ -1,6 +1,7 @@
 // EEPROM functions and definitions not included in standart <EEPROM.h> library
 #include <Arduino.h>
-#include <EEPROM.h>
+// #include <EEPROM.h>
+#include <Wire.h>
 
 #include "Variables.h"
 #include "EEPROMfunctions.h"
@@ -10,30 +11,69 @@
 // Write a unsigned int (two bytes) value to eeprom
 void eeprom_writeInt(uint16_t address, uint16_t value)
 {
-  __disable_irq();
-  EEPROM.write(address, value & 0xFF);   // LSB
-  EEPROM.write(address + 1, (value >> 8) & 0xFF); // MSB
-#if defined(SERIAL_DEBUG)
-  Serial.printf("EEwr a: %u w: %u r: %u\n", address, value, eeprom_readInt(address));
-#endif
-  __enable_irq();
+//   __disable_irq();
+//   EEPROM.write(address, value & 0xFF);   // LSB
+//   EEPROM.write(address + 1, (value >> 8) & 0xFF); // MSB
+// #if defined(SERIAL_DEBUG)
+//   Serial.printf("EEwr a: %u w: %u r: %u\n", address, value, eeprom_readInt(address));
+// #endif
+//   __enable_irq();
+
+// using 24LC512 i2c EEPROM address 0x50
+    Wire.beginTransmission(0x50);
+    int error = Wire.endTransmission();
+    if (!error)
+    {
+      Wire.beginTransmission(0x50);
+      Wire.write((address >> 8) & 0xFF);  // 24LC512 is using 16bit address, need send only for first byte of data, pointer address is incrementing automaticaly
+      Wire.write(address & 0xFF); 
+      Wire.write((value >> 8) & 0xFF);   // write MSB of data
+      Wire.write(value & 0xFF);          // write LSB of data next 
+      Wire.endTransmission();
+      delay(10);   // wait for writing to EEPROM
+    }
 }
 
 void eeprom_updateInt(uint16_t address, uint16_t value)
 {
-  __disable_irq();
-  EEPROM.update(address, value & 0xFF); // LSB
-  EEPROM.update(address + 1, (value >> 8) & 0xFF);
-#if defined(SERIAL_DEBUG)
-  Serial.printf("EEupd a: %u w: %u r: %u\n", address, value, eeprom_readInt(address));
-#endif
-  __enable_irq();
+//   __disable_irq();
+//   EEPROM.update(address, value & 0xFF); // LSB
+//   EEPROM.update(address + 1, (value >> 8) & 0xFF);
+// #if defined(SERIAL_DEBUG)
+//   Serial.printf("EEupd a: %u w: %u r: %u\n", address, value, eeprom_readInt(address));
+// #endif
+//   __enable_irq();
 }
 
 // read a unsigned int (two bytes) value from eeprom
 uint16_t eeprom_readInt(uint16_t address)
 {
-  return EEPROM.read(address) | (EEPROM.read(address + 1) << 8);
+  unsigned int data[2] = {0};
+  // return EEPROM.read(address) | (EEPROM.read(address + 1) << 8);
+  Wire.beginTransmission(0x50);
+  int error = Wire.endTransmission();
+  if (!error) // 24LC512 is responding
+  {
+    // Start I2C transmission
+    Wire.beginTransmission(0x50);
+    Wire.write(((address >> 8) & 0xFF));  // MSB of address 24LC512 is using 16bit address, need send only for first byte of data, pointer address is incrementing automaticaly
+    Wire.write((address & 0xFF));         // LSB of address
+
+    // Stop I2C transmission
+    Wire.endTransmission();
+
+    // Request 2 byte of data 
+    Wire.requestFrom(0x50, 2);
+
+    // Read 2 bytes of data
+    // temp msb, temp lsb
+    if (Wire.available() == 2)
+    {
+      data[0] = Wire.read();   // read MSB of value
+      data[1] = Wire.read();   // read LSB of value
+    }
+  }
+  return (data[0] << 8) | data[1] ;
 }
 
 void EEPROM_init()

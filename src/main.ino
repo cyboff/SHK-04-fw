@@ -399,7 +399,7 @@ void checkSET()
   thre256 = map(thre, 0, 100, 0, 255);
 
   if (oldpga != pga )
-  { // update gain: AD5144A RDAC2=pga256 & RDAC4=pga256
+  { // update gain: AD5144A RDAC2+RDAC4
     uint16_t pga256 = map(pga, 0, 100, 0, 255);
 
     Wire.beginTransmission(0x2B);
@@ -416,7 +416,7 @@ void checkSET()
   }
 
   if (oldgainOffset != gainOffset )
-  { // update gain: AD5144A RDAC2=pga256 & RDAC4=pga256
+  { // update gain offset: AD5144A RDAC1+RDAC3
 
     Wire.beginTransmission(0x2B);
     int error = Wire.endTransmission();
@@ -428,7 +428,6 @@ void checkSET()
       Wire.write(0x12);   // write to RDAC3 
       Wire.write(gainOffset); // pga in 8 bit
       Wire.endTransmission();
-
       oldgainOffset = gainOffset; 
 
     }
