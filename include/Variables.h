@@ -154,7 +154,7 @@ enum
 {
   // just add or remove registers and your good to go...
   // The first register starts at address 0
-  ENUM_SIZE,
+  REG_SIZE,
   MB_MODEL_TYPE,
   MB_MODEL_SERIAL_NUMBER,
   MB_FW_VERSION,
@@ -188,13 +188,14 @@ enum
   POSITION_VALUE,   // 0-100% * 100
   POSITION_VALUE_AVG,  // 0-100% * 100
 
-  AN_VALUES, // 25 registers
-  MOTOR_TIME_DIFF = AN_VALUES + 25,
+  MOTOR_TIME_DIFF,
   EXEC_TIME_ADC,     // exectime of adc conversions
   EXEC_TIME,         // exectime of adc conversions + results calculation
   EXEC_TIME_TRIGGER, // exectime of each triggering
   OFFSET_DELAY,      // calculated trigger delay
-  TOTAL_ERRORS,
+  
+  AN_VALUES, // 25 registers
+  TOTAL_ERRORS = AN_VALUES + 50,
   // leave this one
   TOTAL_REGS_SIZE
   // total number of registers for function 3 and 16 share the same register array

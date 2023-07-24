@@ -10,8 +10,6 @@
 #include <ADC.h>
 #include <DMAChannel.h>
 
-// #include "RingBufferDMA.h"
-
 // for SPI
 #include <SPI.h>
 
@@ -70,10 +68,10 @@ DMAChannel adc0_dma;
 
 DMAMEM static volatile uint16_t __attribute__((aligned(32))) adc0_buf[ANALOG_BUFFER_SIZE]; // buffer 1...
 volatile uint8_t adc_data[ANALOG_BUFFER_SIZE] = {0};                                       // ADC_0 9-bit resolution for differential - sign + 8 bit
-volatile uint16_t value_buffer[25] = {0};
+volatile uint16_t value_buffer[TOTAL_ERRORS-AN_VALUES] = {0};
 volatile boolean adc0_busy = false;
-// unsigned int freq = 400000;         // PDB frequency
-unsigned int freq = 1000000;
+unsigned int freq = 1000000;         // PDB frequency
+//unsigned int freq = 400000;
 volatile int adc0Value = 0;         // analog value
 volatile int analogBufferIndex = 0; // analog buffer pointer
 volatile int delayOffset = 0;
@@ -93,7 +91,7 @@ volatile int motorPulseIndex = 0;
 volatile long motorTimeOld = 0;
 volatile long motorTimeNow = 0;
 volatile int motorTimeDiff = 0;
-volatile int peakValue = 0;
+volatile int peakValue = 0, peakValueOut = 0;
 volatile int positionValue = 0;
 
 // Buttons
@@ -143,24 +141,24 @@ void checkModbus();
 void setup()
 {
 #if defined(SERIAL_DEBUG)
-  Serial.begin(9600);
+  Serial.begin(19200);
   while (!Serial && millis() < 5000)
     ;
   Serial.println("Starting");
 
-  // print all used EEPROM words
-  Serial.print("EEreadS: ");
-  for (int i = 0; i < 21; i++)
-  {
-    Serial.printf("%u ", EEPROM.read(i * 2) | EEPROM.read(i * 2 + 1) << 8);
-  }
-  Serial.println();
-  Serial.print("hRegS: ");
-  for (int i = 0; i < TOTAL_REGS_SIZE; i++)
-  {
-    Serial.printf("%u ", holdingRegs[i]);
-  }
-  Serial.println();
+  // // print all used EEPROM words
+  // Serial.print("EEreadS: ");
+  // for (int i = 0; i < 21; i++)
+  // {
+  //   Serial.printf("%u ", EEPROM.read(i * 2) | EEPROM.read(i * 2 + 1) << 8);
+  // }
+  // Serial.println();
+  // Serial.print("hRegS: ");
+  // for (int i = 0; i < TOTAL_REGS_SIZE; i++)
+  // {
+  //   Serial.printf("%u ", holdingRegs[i]);
+  // }
+  // Serial.println();
 #endif
   Wire.begin(); // initialize Teensy as I2C master
   Wire.setClock(400000);
@@ -231,7 +229,8 @@ void setup()
 
   // enable serial communication
 
-  holdingRegs[ENUM_SIZE] = TOTAL_REGS_SIZE;
+  holdingRegs[REG_SIZE] = TOTAL_REGS_SIZE;
+  //holdingRegs[REG_SIZE] = AN_VALUES;
 
   holdingRegs[MB_MODEL_TYPE] = MODEL_TYPE;
   holdingRegs[MB_MODEL_SERIAL_NUMBER] = MODEL_SERIAL_NUMBER;
@@ -323,26 +322,26 @@ void setup()
 void loop()
 {
 
-#if defined(SERIAL_DEBUG)
-  // print all used EEPROM words
-  if (!testTimeout)
-  {
-    Serial.print("EEreadL: ");
-    for (int i = 0; i < 21; i++)
-    {
-      Serial.printf("%u ", EEPROM.read(i * 2) | EEPROM.read(i * 2 + 1) << 8);
-    }
-    Serial.println();
-    Serial.print("hRegL: ");
-    for (int i = 0; i < TOTAL_REGS_SIZE; i++)
-    {
-      Serial.printf("%u ", holdingRegs[i]);
-    }
-    Serial.println();
+// #if defined(SERIAL_DEBUG)
+//   // print all used EEPROM words
+//   if (!testTimeout)
+//   {
+//     Serial.print("EEreadL: ");
+//     for (int i = 0; i < 21; i++)
+//     {
+//       Serial.printf("%u ", EEPROM.read(i * 2) | EEPROM.read(i * 2 + 1) << 8);
+//     }
+//     Serial.println();
+//     Serial.print("hRegL: ");
+//     for (int i = 0; i < TOTAL_REGS_SIZE; i++)
+//     {
+//       Serial.printf("%u ", holdingRegs[i]);
+//     }
+//     Serial.println();
 
-    testTimeout = 5000; // 5 sec
-  }
-#endif
+//     testTimeout = 5000; // 5 sec
+//   }
+// #endif
 
   // check SET
   checkSET();
@@ -366,7 +365,7 @@ void loop()
 void checkSET()
 {
   uint16_t oldpga = pga; // save old value to update RDAC only if pga changed
-  
+
   switch (set) // RELAY = 3 (REL1 || REL2), MAN1 = 1, MAN2 = 2
   {
   case 1:
@@ -398,7 +397,7 @@ void checkSET()
   }
   thre256 = map(thre, 0, 100, 0, 255);
 
-  if (oldpga != pga )
+  if (oldpga != pga)
   { // update gain: AD5144A RDAC2+RDAC4
     uint16_t pga256 = map(pga, 0, 100, 0, 255);
 
@@ -415,7 +414,7 @@ void checkSET()
     }
   }
 
-  if (oldgainOffset != gainOffset )
+  if (oldgainOffset != gainOffset)
   { // update gain offset: AD5144A RDAC1+RDAC3
 
     Wire.beginTransmission(0x2B);
@@ -423,13 +422,12 @@ void checkSET()
     if (!error)
     {
       Wire.beginTransmission(0x2B);
-      Wire.write(0x10);   // write to RDAC1 
+      Wire.write(0x10);       // write to RDAC1
       Wire.write(gainOffset); // pga in 8 bit
-      Wire.write(0x12);   // write to RDAC3 
+      Wire.write(0x12);       // write to RDAC3
       Wire.write(gainOffset); // pga in 8 bit
       Wire.endTransmission();
-      oldgainOffset = gainOffset; 
-
+      oldgainOffset = gainOffset;
     }
   }
 }
@@ -825,19 +823,19 @@ void callback_delay_isr()
     switch (analogOutMode)
     { // an1/an2: "1Int 2Pos" = 0x0501, "1Pos 2Int" = 0x0105, "1Int 2Int" = 0x0505, "1Pos 2Pos" = 0x0101
     case 0x0501:
-      updateSPI(peakValue, positionValue); // range is 2x 16bit
+      updateSPI(peakValueOut, positionValue); // range is 2x 16bit
       break;
     case 0x0105:
-      updateSPI(positionValue, peakValue);
+      updateSPI(positionValue, peakValueOut);
       break;
     case 0x0505:
-      updateSPI(peakValue, peakValue);
+      updateSPI(peakValueOut, peakValueOut);
       break;
     case 0x0101:
       updateSPI(positionValue, positionValue);
       break;
     default:
-      updateSPI(peakValue, positionValue); // range is 2x 16bit
+      updateSPI(peakValueOut, positionValue); // range is 2x 16bit
       break;
     }
 
@@ -866,19 +864,21 @@ void adc0_dma_isr(void)
 
   for (int i = 0; i < ANALOG_BUFFER_SIZE; i++) // copy DMA buffer
   {
-    // adc_data[i]=(adc0_buf[i] + 256) >> 1; // full scale signal signed 9bit to unsigned 8bit
+    
+    // if (adc0_buf[i] < 2048)
+    //   adc_data[i] = 0;
+    // else
+    //   adc_data[i] = (adc0_buf[i] - 2048) >> 3; // Teensy 4.0 has no analog PGA , 12bit to 8bit positive wave only
 
-    if (adc0_buf[i] < 2048) // only positive wave of signal
-      adc_data[i] = 0;
-    else
-      adc_data[i] = (adc0_buf[i] - 2048) >> 3; // Teensy 4.0 has no analog PGA , 10bit differential to 8bit positive wave only
-                                               // adc_data[i] = adc0_buf[i] >> 4;
+    adc_data[i] = adc0_buf[i] >> 4;  // full wave Teensy 4.0
 
-    // Serial.printf("%u: %u %u ", i, adc0_buf[i], adc_data[i]);
+// #if defined(SERIAL_DEBUG)
+//     Serial.printf("%3u: %5u %5u\n", i, adc0_buf[i], adc_data[i]);
+// #endif
   }
 
   // updateResults();
-
+  //adc0_dma.clearInterrupt();
   adc0_busy = false;
   holdingRegs[EXEC_TIME_ADC] = micros() - exectime; // exectime of adc conversions
 
@@ -892,7 +892,7 @@ void updateResults()
   int hmdThreshold = 0;
   int winBegin = 0;
   int winEnd = 0;
-  // int peakValue = 0;
+  // int peakValue = 0
   int peak[ANALOG_BUFFER_SIZE] = {0};
   long risingEdgeTime = 0;
   long fallingEdgeTime = 0;
@@ -901,6 +901,7 @@ void updateResults()
   int positionValueAvg = 0;
 
   peakValue = 0;
+  peakValueOut = 0;
   positionValue = 0;
 
   // Serial.println("update results");
@@ -930,6 +931,9 @@ void updateResults()
       if (adc_data[i] > peakValue)
       {
         peakValue = adc_data[i];
+#if defined(SERIAL_DEBUG)
+    Serial.printf("%3u: %5u %5u\n", i, adc0_buf[i], adc_data[i]);
+#endif
       }
       peak[i] = peakValue;
 
@@ -1036,7 +1040,7 @@ void updateResults()
 
   peakValueDisp = map(peakValue, 0, 255, 0, 100); // for display 0 - 100%
 
-  peakValue = map(peakValue, 0, 255, 0, 65535); // remap for DAC range
+  peakValueOut = map(peakValue, 0, 255, 0, 65535); // remap for DAC range
 
   if (extTest || intTest) // check test mode and set outputs to 50% and 12mA
   {
@@ -1044,7 +1048,7 @@ void updateResults()
     positionValueAvgDisp = 500; // 50% of display range 0 - 1000
     positionValue = 0x7FFF;     // 12mA on position analog output
     peakValueDisp = 75;         // 75% of display range 0 - 100%
-    peakValue = 0xBFFF;         // 16mA on intensity analog output
+    peakValueOut = 0xBFFF;         // 16mA on intensity analog output
   }
 
   // warning! SPI makes noise, do not send data through SPI when ADC is running
@@ -1052,28 +1056,29 @@ void updateResults()
   // switch (analogOutMode)
   // { // an1/an2: "1Int 2Pos" = 0x0501, "1Pos 2Int" = 0x0105, "1Int 2Int" = 0x0505, "1Pos 2Pos" = 0x0101
   // case 0x0501:
-  //   updateSPI(peakValue, positionValue); // range is 2x 16bit
+  //   updateSPI(peakValueOut, positionValue); // range is 2x 16bit
   //   break;
   // case 0x0105:
-  //   updateSPI(positionValue, peakValue);
+  //   updateSPI(positionValue, peakValueOut);
   //   break;
   // case 0x0505:
-  //   updateSPI(peakValue, peakValue);
+  //   updateSPI(peakValueOut, peakValueOut);
   //   break;
   // case 0x0101:
   //   updateSPI(positionValue, positionValue);
   //   break;
   // default:
-  //   updateSPI(peakValue, positionValue); // range is 2x 16bit
+  //   updateSPI(peakValueOut, positionValue); // range is 2x 16bit
   //   break;
-  // }
+  //}
 
   // if (dataSent && motorPulseIndex == 0) // prepare data for visualization on PC, only first mirror
   if (dataSent && motorPulseIndex == (filterPosition % 6)) // possibility to view different mirrors by changing positionFilter
   {
-    for (int i = 0; i < 25; i++) // MOTOR_TIME_DIFF = AN_VALUES + 25
+    for (int i = 0; i < (TOTAL_ERRORS - AN_VALUES); i++) // TOTAL_ERRORS = AN_VALUES + 50
     {
-      value_buffer[i] = (adc_data[(i * 20) + 10] % 256 << 8) | (adc_data[i * 20] % 256); // MSB = value_buffer[i*8+4] , LSB = value_buffer[i*8] ; only 50 of 200
+      value_buffer[i] = (adc_data[(i * 10) + 5] % 256 << 8) | (adc_data[i * 10] % 256); // MSB = value_buffer[i*8+4] , LSB = value_buffer[i*8] ; only 50 of 200
+      //value_buffer[i] = (adc_data[(i * 2) + 1] % 256 << 8) | (adc_data[i * 2] % 256);
       // value_buffer[i] = adc_data[i*8];
     }
 
@@ -1158,7 +1163,7 @@ void checkModbus()
 
   if (!dataSent)
   {
-    for (byte i = 0; i < (MOTOR_TIME_DIFF - AN_VALUES); i++) // MOTOR_TIME_DIFF = AN_VALUES + 25
+    for (byte i = 0; i < (TOTAL_ERRORS - AN_VALUES); i++) // MOTOR_TIME_DIFF = AN_VALUES + 25
     {
       holdingRegs[i + AN_VALUES] = value_buffer[i]; // values stored properly in updateResults() to save memory
     }

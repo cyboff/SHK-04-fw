@@ -1,7 +1,7 @@
 #include "SimpleModbusSlave.h"
 #include "Variables.h"
 
-#define BUFFER_SIZE 128
+#define BUFFER_SIZE 256
 
 // frame[] is used to recieve and transmit packages. 
 // The maximum serial ring buffer size is 128
