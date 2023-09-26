@@ -7,16 +7,16 @@
 //defaults EEPROM
 #define MODEL_TYPE 50
 #define MODEL_SERIAL_NUMBER 23004
-#define FW_VERSION 237           
+#define FW_VERSION 239           
 
 #define DEFAULT_MODBUS_ID MODEL_SERIAL_NUMBER % 1000 % 247 // MODBUS ID slave (range 1..247)
 #define DEFAULT_MODBUS_SPEED 19200
 #define DEFAULT_MODBUS_FORMAT SERIAL_8N1
 
 #define DEFAULT_SET 3             // RELAY = 3 (REL1 || REL2), MAN1 = 1, MAN2 = 2
-#define DEFAULT_GAIN_SET1 16      // valid values 1,2,4,8,16,32,64
+#define DEFAULT_GAIN_SET1 25      // valid values 1,2,4,8,16,32,64
 #define DEFAULT_THRESHOLD_SET1 50 // min 20, max 80
-#define DEFAULT_GAIN_SET2 32
+#define DEFAULT_GAIN_SET2 75
 #define DEFAULT_THRESHOLD_SET2 50
 #define DEFAULT_GAIN_OFFSET 127   // gain adjustment via AD5144A RDAC1+RDAC3 
 

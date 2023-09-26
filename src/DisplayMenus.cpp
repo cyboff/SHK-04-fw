@@ -517,11 +517,11 @@ void showSensorMenu(void)
     menuTimeout = TIMEOUT_MENU;
 
   if (currentMenuOption == 0)
-    displayPrint("Gain1 %2d", pga1);
+    displayPrint("Gain1%3d", pga1);
   if (currentMenuOption == 1)
     displayPrint("Thre1 %2d", thre1);
   if (currentMenuOption == 2)
-    displayPrint("Gain2 %2d", pga2);
+    displayPrint("Gain2%3d", pga2);
   if (currentMenuOption == 3)
     displayPrint("Thre2 %2d", thre2);
   if (currentMenuOption == 4)
@@ -590,25 +590,24 @@ void setGain1Menu(void)
     menuTimeout = TIMEOUT_MENU;
 
   if (blinkMenu)
-    displayPrint("Gain1 %2d", menu_pga);
+    displayPrint("Gain1%3d", menu_pga);
   else
-    displayPrint("      %2d", menu_pga);
+    displayPrint("     %3d", menu_pga);
 
   if (lastKey == BTN_B || lastKey == BTN_BH)
-  {
-    if (menu_pga > 1)
-      menu_pga = menu_pga / 2;
-    else
-      menu_pga = 64;
+  { // decrement
+    menu_pga--;
+  }
+  if (lastKey == BTN_C || lastKey == BTN_CH)
+  { // increment
+    menu_pga++;
   }
 
-  if (lastKey == BTN_C || lastKey == BTN_CH)
-  {
-    if (menu_pga < 64)
-      menu_pga = menu_pga * 2;
-    else
-      menu_pga = 1;
-  }
+  // check valid Gain range 1..100
+  if (menu_pga < 1)
+    menu_pga = 100;
+  if (menu_pga > 100)
+    menu_pga = 1;
 
   if (lastKey == BTN_A || lastKey == BTN_AH)
   { //ESC
@@ -676,24 +675,24 @@ void setGain2Menu(void)
     menuTimeout = TIMEOUT_MENU;
 
   if (blinkMenu)
-    displayPrint("Gain2 %2d", menu_pga);
+    displayPrint("Gain2%3d", menu_pga);
   else
-    displayPrint("      %2d", menu_pga);
+    displayPrint("     %3d", menu_pga);
 
   if (lastKey == BTN_B || lastKey == BTN_BH)
-  {
-    if (menu_pga > 1)
-      menu_pga = menu_pga / 2;
-    else
-      menu_pga = 64;
+  { // decrement
+    menu_pga--;
   }
   if (lastKey == BTN_C || lastKey == BTN_CH)
-  {
-    if (menu_pga < 64)
-      menu_pga = menu_pga * 2;
-    else
-      menu_pga = 1;
+  { // increment
+    menu_pga++;
   }
+
+  // check valid Gain range 1..100
+  if (menu_pga < 1)
+    menu_pga = 100;
+  if (menu_pga > 100)
+    menu_pga = 1;
 
   if (lastKey == BTN_A || lastKey == BTN_AH)
   { //ESC
@@ -888,21 +887,12 @@ void setModbusID(void)
   else
     displayPrint("     %3d", menu_modbusID);
 
-  if (lastKey == BTN_BH)
-  { // hold to increment by 10
-    menu_modbusID = menu_modbusID - 10;
-  }
 
-  if (lastKey == BTN_CH)
-  { // hold to increment by 10
-    menu_modbusID = menu_modbusID + 10;
-  }
-
-  if (lastKey == BTN_B)
+  if (lastKey == BTN_B || lastKey == BTN_BH)
   { // decrement
     menu_modbusID--;
   }
-  if (lastKey == BTN_C)
+  if (lastKey == BTN_C || lastKey == BTN_CH)
   { // increment
     menu_modbusID++;
   }

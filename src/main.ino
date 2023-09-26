@@ -68,10 +68,10 @@ DMAChannel adc0_dma;
 
 DMAMEM static volatile uint16_t __attribute__((aligned(32))) adc0_buf[ANALOG_BUFFER_SIZE]; // buffer 1...
 volatile uint8_t adc_data[ANALOG_BUFFER_SIZE] = {0};                                       // ADC_0 9-bit resolution for differential - sign + 8 bit
-volatile uint16_t value_buffer[TOTAL_ERRORS-AN_VALUES] = {0};
+volatile uint16_t value_buffer[TOTAL_ERRORS - AN_VALUES] = {0};
 volatile boolean adc0_busy = false;
-unsigned int freq = 1000000;         // PDB frequency
-//unsigned int freq = 400000;
+unsigned int freq = 1000000; // PDB frequency
+// unsigned int freq = 400000;
 volatile int adc0Value = 0;         // analog value
 volatile int analogBufferIndex = 0; // analog buffer pointer
 volatile int delayOffset = 0;
@@ -230,7 +230,7 @@ void setup()
   // enable serial communication
 
   holdingRegs[REG_SIZE] = TOTAL_REGS_SIZE;
-  //holdingRegs[REG_SIZE] = AN_VALUES;
+  // holdingRegs[REG_SIZE] = AN_VALUES;
 
   holdingRegs[MB_MODEL_TYPE] = MODEL_TYPE;
   holdingRegs[MB_MODEL_SERIAL_NUMBER] = MODEL_SERIAL_NUMBER;
@@ -322,26 +322,26 @@ void setup()
 void loop()
 {
 
-// #if defined(SERIAL_DEBUG)
-//   // print all used EEPROM words
-//   if (!testTimeout)
-//   {
-//     Serial.print("EEreadL: ");
-//     for (int i = 0; i < 21; i++)
-//     {
-//       Serial.printf("%u ", EEPROM.read(i * 2) | EEPROM.read(i * 2 + 1) << 8);
-//     }
-//     Serial.println();
-//     Serial.print("hRegL: ");
-//     for (int i = 0; i < TOTAL_REGS_SIZE; i++)
-//     {
-//       Serial.printf("%u ", holdingRegs[i]);
-//     }
-//     Serial.println();
+  // #if defined(SERIAL_DEBUG)
+  //   // print all used EEPROM words
+  //   if (!testTimeout)
+  //   {
+  //     Serial.print("EEreadL: ");
+  //     for (int i = 0; i < 21; i++)
+  //     {
+  //       Serial.printf("%u ", EEPROM.read(i * 2) | EEPROM.read(i * 2 + 1) << 8);
+  //     }
+  //     Serial.println();
+  //     Serial.print("hRegL: ");
+  //     for (int i = 0; i < TOTAL_REGS_SIZE; i++)
+  //     {
+  //       Serial.printf("%u ", holdingRegs[i]);
+  //     }
+  //     Serial.println();
 
-//     testTimeout = 5000; // 5 sec
-//   }
-// #endif
+  //     testTimeout = 5000; // 5 sec
+  //   }
+  // #endif
 
   // check SET
   checkSET();
@@ -864,21 +864,21 @@ void adc0_dma_isr(void)
 
   for (int i = 0; i < ANALOG_BUFFER_SIZE; i++) // copy DMA buffer
   {
-    
-    // if (adc0_buf[i] < 2048)
-    //   adc_data[i] = 0;
-    // else
-    //   adc_data[i] = (adc0_buf[i] - 2048) >> 3; // Teensy 4.0 has no analog PGA , 12bit to 8bit positive wave only
 
-    adc_data[i] = adc0_buf[i] >> 4;  // full wave Teensy 4.0
+    if (adc0_buf[i] < 2048)
+      adc_data[i] = 0;
+    else
+      adc_data[i] = (adc0_buf[i] - 2048) >> 3; // Teensy 4.0 has no analog PGA , 12bit to 8bit positive wave only
 
-// #if defined(SERIAL_DEBUG)
-//     Serial.printf("%3u: %5u %5u\n", i, adc0_buf[i], adc_data[i]);
-// #endif
+    // adc_data[i] = adc0_buf[i] >> 4;  // full wave Teensy 4.0
+
+    // #if defined(SERIAL_DEBUG)
+    //     Serial.printf("%3u: %5u %5u\n", i, adc0_buf[i], adc_data[i]);
+    // #endif
   }
 
   // updateResults();
-  //adc0_dma.clearInterrupt();
+  // adc0_dma.clearInterrupt();
   adc0_busy = false;
   holdingRegs[EXEC_TIME_ADC] = micros() - exectime; // exectime of adc conversions
 
@@ -932,7 +932,7 @@ void updateResults()
       {
         peakValue = adc_data[i];
 #if defined(SERIAL_DEBUG)
-    Serial.printf("%3u: %5u %5u\n", i, adc0_buf[i], adc_data[i]);
+        Serial.printf("%3u: %5u %5u\n", i, adc0_buf[i], adc_data[i]);
 #endif
       }
       peak[i] = peakValue;
@@ -1048,7 +1048,7 @@ void updateResults()
     positionValueAvgDisp = 500; // 50% of display range 0 - 1000
     positionValue = 0x7FFF;     // 12mA on position analog output
     peakValueDisp = 75;         // 75% of display range 0 - 100%
-    peakValueOut = 0xBFFF;         // 16mA on intensity analog output
+    peakValueOut = 0xBFFF;      // 16mA on intensity analog output
   }
 
   // warning! SPI makes noise, do not send data through SPI when ADC is running
@@ -1078,8 +1078,8 @@ void updateResults()
     for (int i = 0; i < (TOTAL_ERRORS - AN_VALUES); i++) // TOTAL_ERRORS = AN_VALUES + 50
     {
       value_buffer[i] = (adc_data[(i * 10) + 5] % 256 << 8) | (adc_data[i * 10] % 256); // MSB = value_buffer[i*8+4] , LSB = value_buffer[i*8] ; only 50 of 200
-      //value_buffer[i] = (adc_data[(i * 2) + 1] % 256 << 8) | (adc_data[i * 2] % 256);
-      // value_buffer[i] = adc_data[i*8];
+      // value_buffer[i] = (adc_data[(i * 2) + 1] % 256 << 8) | (adc_data[i * 2] % 256);
+      //  value_buffer[i] = adc_data[i*8];
     }
 
     dataSent = false;
@@ -1237,23 +1237,10 @@ void checkModbus()
     eeprom_writeInt(EE_ADDR_set, holdingRegs[SET]);
   }
 
-  if (holdingRegs[GAIN_SET1] != (pga1 * 100))
+  if ((holdingRegs[GAIN_SET1] != (pga1 * 100)) && (holdingRegs[GAIN_SET1] >= 100) && (holdingRegs[GAIN_SET1] <= 10000))
   {
-    switch (holdingRegs[GAIN_SET1])
-    { // check for valid values
-    case 100:
-    case 200:
-    case 400:
-    case 800:
-    case 1600:
-    case 3200:
-    case 6400:
-      pga1 = holdingRegs[GAIN_SET1] / 100;
-      eeprom_writeInt(EE_ADDR_gain_set1, pga1);
-      break;
-    default:
-      break;
-    }
+    pga1 = holdingRegs[GAIN_SET1] / 100;
+    eeprom_writeInt(EE_ADDR_gain_set1, pga1);
   }
 
   if ((holdingRegs[THRESHOLD_SET1] != (thre1 * 100)) && (holdingRegs[THRESHOLD_SET1] >= 2000) && (holdingRegs[THRESHOLD_SET1] <= 8000))
@@ -1262,23 +1249,10 @@ void checkModbus()
     eeprom_writeInt(EE_ADDR_threshold_set1, thre1);
   }
 
-  if (holdingRegs[GAIN_SET2] != (pga2 * 100))
+  if ((holdingRegs[GAIN_SET2] != (pga2 * 100)) && (holdingRegs[GAIN_SET2] >= 100) && (holdingRegs[GAIN_SET2] <= 10000))
   {
-    switch (holdingRegs[GAIN_SET2])
-    {
-    case 100:
-    case 200:
-    case 400:
-    case 800:
-    case 1600:
-    case 3200:
-    case 6400:
-      pga2 = holdingRegs[GAIN_SET2] / 100;
-      eeprom_writeInt(EE_ADDR_gain_set2, pga2);
-      break;
-    default:
-      break;
-    }
+    pga2 = holdingRegs[GAIN_SET2] / 100;
+    eeprom_writeInt(EE_ADDR_gain_set2, pga2);
   }
 
   if ((holdingRegs[THRESHOLD_SET2] != (thre2 * 100)) && (holdingRegs[THRESHOLD_SET2] >= 2000) && (holdingRegs[THRESHOLD_SET2] <= 8000))

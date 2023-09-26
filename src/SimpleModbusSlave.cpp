@@ -290,22 +290,10 @@ uint16_t modbus_update(uint16_t *holdingRegs)
                 holdingRegs[SET] = regStatus;
                 break;
               case 101:
-                if (regStatus >= 6400) {holdingRegs[GAIN_SET1] = 6400;} else
-                if (regStatus >= 3200) {holdingRegs[GAIN_SET1] = 3200;} else
-                if (regStatus >= 1600) {holdingRegs[GAIN_SET1] = 1600;} else
-                if (regStatus >= 800) {holdingRegs[GAIN_SET1] = 800;} else
-                if (regStatus >= 400) {holdingRegs[GAIN_SET1] = 400;} else
-                if (regStatus >= 200) {holdingRegs[GAIN_SET1] = 200;} else
-                holdingRegs[GAIN_SET1] = 100;
+                holdingRegs[GAIN_SET1] = regStatus;
                 break;
               case 102:
-                if (regStatus >= 6400) {holdingRegs[GAIN_SET2] = 6400;} else
-                if (regStatus >= 3200) {holdingRegs[GAIN_SET2] = 3200;} else
-                if (regStatus >= 1600) {holdingRegs[GAIN_SET2] = 1600;} else
-                if (regStatus >= 800) {holdingRegs[GAIN_SET2] = 800;} else
-                if (regStatus >= 400) {holdingRegs[GAIN_SET2] = 400;} else
-                if (regStatus >= 200) {holdingRegs[GAIN_SET2] = 200;} else
-                holdingRegs[GAIN_SET2] = 100;
+                holdingRegs[GAIN_SET2] = regStatus;
                 break;
               case 103:
                 holdingRegs[THRESHOLD_SET1] = regStatus;
