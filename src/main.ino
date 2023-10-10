@@ -20,7 +20,6 @@
 #include "SimpleModbusSlave.h"
 
 #include "Variables.h"
-#include <EEPROM.h>
 #include "EEPROMfunctions.h"
 #include "DisplayMenus.h"
 
@@ -144,22 +143,10 @@ void setup()
   Serial.begin(19200);
   while (!Serial && millis() < 5000)
     ;
-  Serial.println("Starting");
-
-  // // print all used EEPROM words
-  // Serial.print("EEreadS: ");
-  // for (int i = 0; i < 21; i++)
-  // {
-  //   Serial.printf("%u ", EEPROM.read(i * 2) | EEPROM.read(i * 2 + 1) << 8);
-  // }
-  // Serial.println();
-  // Serial.print("hRegS: ");
-  // for (int i = 0; i < TOTAL_REGS_SIZE; i++)
-  // {
-  //   Serial.printf("%u ", holdingRegs[i]);
-  // }
-  // Serial.println();
+  Serial.println("Starting...");
+  Serial.println();
 #endif
+
   Wire.begin(); // initialize Teensy as I2C master
   Wire.setClock(400000);
   // initial setup AD5144A
@@ -413,6 +400,8 @@ void checkSET()
       Wire.endTransmission();
     }
   }
+   
+  //gainOffset = 127;
 
   if (oldgainOffset != gainOffset)
   { // update gain offset: AD5144A RDAC1+RDAC3
@@ -514,8 +503,8 @@ void checkALARM()
   if (!refreshMenuTimeout)
   {
 
-    // celsius = (uint8_t)tempmonGetTemp();  // internal CPU temp Teensy 4.0
-    celsius = (uint8_t)getI2Ctemperature();
+    //celsius = (uint8_t)tempmonGetTemp();  // internal CPU temp Teensy 4.0
+    celsius = (uint8_t)getI2Ctemperature();  // temperature from ADT75
 
     if (celsius > max_temperature)
     {
@@ -566,10 +555,10 @@ void checkALARM()
       currentMenuOption = 2;
     }
   }
-  else if (intTest && (currentMenu != MENU_SETUP))
+  else if (intTest)
   {
     digitalWriteFast(OUT_ALARM_NEG, HIGH); // NO ALARM => negative output: 24V=OK, but keep LED_ALARM blinking
-    if (!alarmChecked)
+    if ((!alarmChecked) && !((currentMenu == MENU_SETUP) && (currentMenuOption == 5)))
     {
       currentMenu = MENU_ALARM;
       currentMenuOption = 3;
@@ -864,12 +853,17 @@ void adc0_dma_isr(void)
 
   for (int i = 0; i < ANALOG_BUFFER_SIZE; i++) // copy DMA buffer
   {
+    adc_data[i] = (4095 - adc0_buf[i]) >> 4;
+    
+    // if ((adc0_buf[i] < 2048) && (adc0_buf[i] >= 0))     
+    //    adc_data[i] = (2047 - adc0_buf[i]) >> 3;
+    // else adc_data[i] = 0;
 
-    if (adc0_buf[i] < 2048)
-      adc_data[i] = 0;
-    else
-      adc_data[i] = (adc0_buf[i] - 2048) >> 3; // Teensy 4.0 has no analog PGA , 12bit to 8bit positive wave only
-
+    // if (adc0_buf[i] < 2048)
+    //   adc_data[i] = 0;
+    // else
+    //   adc_data[i] = (adc0_buf[i] - 2048) >> 3; // Teensy 4.0 has no analog PGA , 12bit to 8bit positive wave only
+    //  
     // adc_data[i] = adc0_buf[i] >> 4;  // full wave Teensy 4.0
 
     // #if defined(SERIAL_DEBUG)
@@ -1325,7 +1319,7 @@ void checkModbus()
     eeprom_writeInt(EE_ADDR_filter_off, filterOff);
   }
 
-  if (holdingRegs[IO_STATE] != io_state)
+  if ((holdingRegs[IO_STATE] & (1 << IO_LASER)) != (io_state & (1 << IO_LASER)))
   {
     if (holdingRegs[IO_STATE] & (1 << IO_LASER))
     { // check if IO_LASER bit is set
@@ -1337,24 +1331,31 @@ void checkModbus()
       digitalWrite(LASER, LOW);
       laserTimeout = 0;
     }
+  }
 
+  if ((holdingRegs[IO_STATE] & (1 << IO_IR_LED)) != (io_state & (1 << IO_IR_LED)))
+  {
     if (holdingRegs[IO_STATE] & (1 << IO_IR_LED))
     { // check if IO_IR_LED bit is set
-      digitalWrite(IR_LED, HIGH);
+      //digitalWrite(IR_LED, HIGH);
       testTimeout = TIMEOUT_TEST;
       intTest = true;
     }
     else
     {
-      digitalWrite(IR_LED, LOW);
+      //digitalWrite(IR_LED, LOW);
       intTest = false;
     }
+  }
 
+  if ((holdingRegs[IO_STATE] & (1 << IO_SW_RESET)) != (io_state & (1 << IO_SW_RESET)))
+  {
     if (holdingRegs[IO_STATE] & (1 << IO_SW_RESET))
     {
       SCB_AIRCR = 0x05FA0004; // software reset on all Cortex M processors
     }
   }
+
 }
 
 // check void ADC_Module::startPDB() in ADC_Module.cpp for //NVIC_ENABLE_IRQ(IRQ_PDB);

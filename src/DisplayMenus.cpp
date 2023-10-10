@@ -306,7 +306,7 @@ void showMainMenu(void)
     displayPrint("Pos %3d%%", positionValueAvgDisp / 10);
   }
   if (currentMenuOption == 2)
-    displayPrint("Gain %2dx", pga);
+    displayPrint("Gain %3d", pga);
   if (currentMenuOption == 3)
     displayPrint("Thre %2d%%", thre);
   //if (currentMenuOption == 4) displayPrint("Set %s", menu_setDisp[setDispIndex]);
@@ -492,10 +492,14 @@ void showSetupMenu(void)
     }
     if (currentMenuOption == 5)
     {
+      if (!intTest) {
       testTimeout = TIMEOUT_TEST;
-      intTest = !intTest;
-      //currentMenu = MENU_SETUP;
-      //currentMenuOption = 3;
+      intTest = true;
+      }
+      else
+      intTest = false;
+      // currentMenu = MENU_SETUP;
+      // currentMenuOption = 5;
     }
   }
 
@@ -1645,9 +1649,9 @@ void showInfoMenu(void)
   if (currentMenuOption == 2)
     displayPrint("FW %5d", FW_VERSION);
   if (currentMenuOption == 3)
-    displayPrint("CpuT %2dC", celsius);
+    displayPrint("IntT%3dC", celsius);
   if (currentMenuOption == 4)
-    displayPrint("MaxT %2dC", max_temperature);
+    displayPrint("MaxT%3dC", max_temperature);
   if (currentMenuOption == 5)
     displayPrint("TT%6d", total_runtime);
   if (currentMenuOption == 6)
