@@ -65,7 +65,7 @@ float sma = 0;
 ADC *adc = new ADC(); // adc object
 DMAChannel adc0_dma;
 
-DMAMEM static volatile uint16_t __attribute__((aligned(32))) adc0_buf[ANALOG_BUFFER_SIZE]; // buffer 1...
+DMAMEM static volatile uint16_t __attribute__((aligned(32))) adc0_buf[512]; // buffer is bigger because there is noise peak after ADC is restarted
 volatile uint8_t adc_data[ANALOG_BUFFER_SIZE] = {0};                                       // ADC_0 9-bit resolution for differential - sign + 8 bit
 volatile uint16_t value_buffer[TOTAL_ERRORS - AN_VALUES] = {0};
 volatile boolean adc0_busy = false;
@@ -277,7 +277,7 @@ void setup()
   // timerDelay.priority(16);
 
   timer500us.begin(timer500us_isr, 50000 / 10); // motor output pulses slowly going to 500us
-  for (int speed = 20; speed <= 100; speed++)
+  for (int speed = 10; speed <= 100; speed++)
   {
     // timer500us.end();
     timer500us.update(50000 / speed); // motor output pulses slowly going to 500us
@@ -291,11 +291,16 @@ void setup()
   attachInterrupt(digitalPinToInterrupt(PIN_BTN_C), checkButtonC, CHANGE);
   attachInterrupt(digitalPinToInterrupt(PIN_BTN_D), checkButtonD, CHANGE);
 
-  for (int i = 0; i < ANALOG_BUFFER_SIZE; i++)
+  for (int i = 0; i < 512; i++)
   {
     adc0_buf[i] = 0;
+  }
+
+  for (int i = 0; i < ANALOG_BUFFER_SIZE; i++)
+  {
     adc_data[i] = 0;
   }
+
   // Teensy 4.0 not working without clearing cache
   if ((uint32_t)adc0_buf >= 0x20200000u)
     arm_dcache_flush_delete((void *)adc0_buf, sizeof(adc0_buf));
@@ -853,11 +858,11 @@ void adc0_dma_isr(void)
 
   for (int i = 0; i < ANALOG_BUFFER_SIZE; i++) // copy DMA buffer
   {
-    adc_data[i] = (4095 - adc0_buf[i]) >> 4;
+    //adc_data[i] = (4095 - adc0_buf[i+12]) >> 4; // forget first 12 values because of noise peak after ADC restart
     
-    // if ((adc0_buf[i] < 2048) && (adc0_buf[i] >= 0))     
-    //    adc_data[i] = (2047 - adc0_buf[i]) >> 3;
-    // else adc_data[i] = 0;
+    if ((adc0_buf[i+12] < 2048) && (adc0_buf[i+12] >= 0))  // forget first 12 values because of noise peak after ADC restart
+       adc_data[i] = (2047 - adc0_buf[i+12]) >> 3;
+    else adc_data[i] = 0;
 
     // if (adc0_buf[i] < 2048)
     //   adc_data[i] = 0;
@@ -1157,7 +1162,7 @@ void checkModbus()
 
   if (!dataSent)
   {
-    for (byte i = 0; i < (TOTAL_ERRORS - AN_VALUES); i++) // MOTOR_TIME_DIFF = AN_VALUES + 25
+    for (byte i = 0; i < (TOTAL_ERRORS - AN_VALUES); i++) // TOTAL_ERRORS = AN_VALUES + 50
     {
       holdingRegs[i + AN_VALUES] = value_buffer[i]; // values stored properly in updateResults() to save memory
     }
