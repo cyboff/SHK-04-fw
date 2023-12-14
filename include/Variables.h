@@ -2,7 +2,7 @@
 #ifndef __Variables_H
 #define __Variables_H
 
-// #define SERIAL_DEBUG
+//#define SERIAL_DEBUG
 
 //defaults EEPROM
 #define MODEL_TYPE 50
@@ -18,7 +18,7 @@
 #define DEFAULT_THRESHOLD_SET1 50 // min 20, max 80
 #define DEFAULT_GAIN_SET2 75
 #define DEFAULT_THRESHOLD_SET2 50
-#define DEFAULT_GAIN_OFFSET 128   // gain adjustment via AD5144A RDAC1+RDAC3 
+#define DEFAULT_GAIN_OFFSET    0  // gain adjustment via AD5144A RDAC1+RDAC3  range -128 to 127
 
 #if MODEL_TYPE == 10
 #define DEFAULT_WINDOW_BEGIN 45 // min 5, max 45

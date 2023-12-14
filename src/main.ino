@@ -417,10 +417,15 @@ void checkSET()
     {
       Wire.beginTransmission(0x2B);
       Wire.write(0x10);       // write to RDAC1
-      Wire.write(gainOffset); // pga in 8 bit
+      Wire.write((int8_t)gainOffset+128); // pga in 8 bit   convert gainOffset from -128 to 127 to  0 to 255
       Wire.write(0x12);       // write to RDAC3
-      Wire.write(gainOffset); // pga in 8 bit
+      Wire.write((int8_t)gainOffset+128); // pga in 8 bit   convert gainOffset from -128 to 127 to  0 to 255
       Wire.endTransmission();
+      
+      // #if defined(SERIAL_DEBUG)
+      //        Serial.printf("Gain offset eeprom: %u i2c: %u\n", gainOffset, (int8_t)gainOffset+128);
+      // #endif
+
       oldgainOffset = gainOffset;
     }
   }
@@ -932,9 +937,9 @@ void updateResults()
       if (adc_data[i] > peakValue)
       {
         peakValue = adc_data[i];
-#if defined(SERIAL_DEBUG)
-        Serial.printf("%3u: %5u %5u\n", i, adc0_buf[i], adc_data[i]);
-#endif
+// #if defined(SERIAL_DEBUG)
+//         Serial.printf("%3u: %5u %5u\n", i, adc0_buf[i], adc_data[i]);
+// #endif
       }
       peak[i] = peakValue;
 
@@ -1138,7 +1143,7 @@ void checkModbus()
   holdingRegs[THRESHOLD_SET1] = thre1 * 100;
   holdingRegs[GAIN_SET2] = pga2 * 100;
   holdingRegs[THRESHOLD_SET2] = thre2 * 100;
-  holdingRegs[GAIN_OFFSET] = (uint8_t)((int8_t)gainOffset-128);   // convert 0-255 to -128-127
+  holdingRegs[GAIN_OFFSET] = gainOffset;   // range -128 to 127 saved as 0 to 255
 
   holdingRegs[WINDOW_BEGIN] = windowBegin * 100;
   holdingRegs[WINDOW_END] = windowEnd * 100;
@@ -1263,9 +1268,9 @@ void checkModbus()
     eeprom_writeInt(EE_ADDR_threshold_set2, thre2);
   }
 
-  if (((int8_t)holdingRegs[GAIN_OFFSET] != (int8_t)gainOffset-128) && (holdingRegs[GAIN_OFFSET] >= 0) && (holdingRegs[GAIN_OFFSET] <= 255))
+  if ((holdingRegs[GAIN_OFFSET] != gainOffset) && (holdingRegs[GAIN_OFFSET] >= 0) && (holdingRegs[GAIN_OFFSET] <= 255))
   {
-    gainOffset = (int8_t)holdingRegs[GAIN_OFFSET]+128;   // convert -128-127 to 0-255
+    gainOffset = holdingRegs[GAIN_OFFSET];
     eeprom_writeInt(EE_ADDR_gain_offset, gainOffset);
   }
 

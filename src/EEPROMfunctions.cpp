@@ -11,38 +11,46 @@
 // Write a unsigned int (two bytes) value to eeprom
 void eeprom_writeInt(uint16_t address, uint16_t value)
 {
-//   __disable_irq();
-//   EEPROM.write(address, value & 0xFF);   // LSB
-//   EEPROM.write(address + 1, (value >> 8) & 0xFF); // MSB
-// #if defined(SERIAL_DEBUG)
-//   Serial.printf("EEwr a: %u w: %u r: %u\n", address, value, eeprom_readInt(address));
-// #endif
-//   __enable_irq();
+  //   __disable_irq();
+  //   EEPROM.write(address, value & 0xFF);   // LSB
+  //   EEPROM.write(address + 1, (value >> 8) & 0xFF); // MSB
+  // #if defined(SERIAL_DEBUG)
+  //   Serial.printf("EEwr a: %u w: %u r: %u\n", address, value, eeprom_readInt(address));
+  // #endif
+  //   __enable_irq();
 
-// using 24LC512 i2c EEPROM address 0x50
+  // using 24LC512 i2c EEPROM address 0x50
+#if defined(SERIAL_DEBUG)
+  Serial.printf("EEwr a: %u before: %u", address, eeprom_readInt(address));
+#endif
+
+  Wire.beginTransmission(0x50);
+  int error = Wire.endTransmission();
+  if (!error)
+  {
     Wire.beginTransmission(0x50);
-    int error = Wire.endTransmission();
-    if (!error)
-    {
-      Wire.beginTransmission(0x50);
-      Wire.write((address >> 8) & 0xFF);  // 24LC512 is using 16bit address, need send only for first byte of data, pointer address is incrementing automaticaly
-      Wire.write(address & 0xFF); 
-      Wire.write((value >> 8) & 0xFF);   // write MSB of data
-      Wire.write(value & 0xFF);          // write LSB of data next 
-      Wire.endTransmission();
-      delay(10);   // wait for writing to EEPROM
-    }
+    Wire.write((address >> 8) & 0xFF); // 24LC512 is using 16bit address, need send only for first byte of data, pointer address is incrementing automaticaly
+    Wire.write(address & 0xFF);
+    Wire.write((value >> 8) & 0xFF); // write MSB of data
+    Wire.write(value & 0xFF);        // write LSB of data next
+    Wire.endTransmission();
+    delay(10); // wait for writing to EEPROM
+  }
+  
+#if defined(SERIAL_DEBUG)
+  Serial.printf("  write: %u after: %u\n", value, eeprom_readInt(address));
+#endif
 }
 
 void eeprom_updateInt(uint16_t address, uint16_t value)
 {
-//   __disable_irq();
-//   EEPROM.update(address, value & 0xFF); // LSB
-//   EEPROM.update(address + 1, (value >> 8) & 0xFF);
-// #if defined(SERIAL_DEBUG)
-//   Serial.printf("EEupd a: %u w: %u r: %u\n", address, value, eeprom_readInt(address));
-// #endif
-//   __enable_irq();
+  //   __disable_irq();
+  //   EEPROM.update(address, value & 0xFF); // LSB
+  //   EEPROM.update(address + 1, (value >> 8) & 0xFF);
+  // #if defined(SERIAL_DEBUG)
+  //   Serial.printf("EEupd a: %u w: %u r: %u\n", address, value, eeprom_readInt(address));
+  // #endif
+  //   __enable_irq();
 }
 
 // read a unsigned int (two bytes) value from eeprom
@@ -56,24 +64,24 @@ uint16_t eeprom_readInt(uint16_t address)
   {
     // Start I2C transmission
     Wire.beginTransmission(0x50);
-    Wire.write(((address >> 8) & 0xFF));  // MSB of address 24LC512 is using 16bit address, need send only for first byte of data, pointer address is incrementing automaticaly
-    Wire.write((address & 0xFF));         // LSB of address
+    Wire.write(((address >> 8) & 0xFF)); // MSB of address 24LC512 is using 16bit address, need send only for first byte of data, pointer address is incrementing automaticaly
+    Wire.write((address & 0xFF));        // LSB of address
 
     // Stop I2C transmission
     Wire.endTransmission();
 
-    // Request 2 byte of data 
+    // Request 2 byte of data
     Wire.requestFrom(0x50, 2);
 
     // Read 2 bytes of data
     // temp msb, temp lsb
     if (Wire.available() == 2)
     {
-      data[0] = Wire.read();   // read MSB of value
-      data[1] = Wire.read();   // read LSB of value
+      data[0] = Wire.read(); // read MSB of value
+      data[1] = Wire.read(); // read LSB of value
     }
   }
-  return (data[0] << 8) | data[1] ;
+  return (data[0] << 8) | data[1];
 }
 
 void EEPROM_init()
@@ -106,7 +114,7 @@ void config_loadFromEEPROM()
   thre1 = eeprom_readInt(EE_ADDR_threshold_set1);
   pga2 = eeprom_readInt(EE_ADDR_gain_set2);
   thre2 = eeprom_readInt(EE_ADDR_threshold_set2);
-  gainOffset = eeprom_readInt(EE_ADDR_gain_offset);  // 0 to 255 
+  gainOffset = eeprom_readInt(EE_ADDR_gain_offset); // 0 to 255
 
   windowBegin = eeprom_readInt(EE_ADDR_window_begin);
   windowEnd = eeprom_readInt(EE_ADDR_window_end);
@@ -172,7 +180,7 @@ void reset_writeDefaultsToEEPROM()
   eeprom_writeInt(EE_ADDR_threshold_set1, DEFAULT_THRESHOLD_SET1);
   eeprom_writeInt(EE_ADDR_gain_set2, DEFAULT_GAIN_SET2);
   eeprom_writeInt(EE_ADDR_threshold_set2, DEFAULT_THRESHOLD_SET2);
-  //eeprom_writeInt(EE_ADDR_gain_offset, DEFAULT_GAIN_OFFSET);
+  // eeprom_writeInt(EE_ADDR_gain_offset, DEFAULT_GAIN_OFFSET);
 
   eeprom_writeInt(EE_ADDR_window_begin, DEFAULT_WINDOW_BEGIN);
   eeprom_writeInt(EE_ADDR_window_end, DEFAULT_WINDOW_END);
@@ -184,6 +192,6 @@ void reset_writeDefaultsToEEPROM()
   eeprom_writeInt(EE_ADDR_filter_on, DEFAULT_FILTER_ON);
   eeprom_writeInt(EE_ADDR_filter_off, DEFAULT_FILTER_OFF);
 
-// eeprom_writeInt(EE_ADDR_max_temperature, max_temperature);
-// eeprom_writeInt(EE_ADDR_total_runtime, total_runtime);
+  // eeprom_writeInt(EE_ADDR_max_temperature, max_temperature);
+  // eeprom_writeInt(EE_ADDR_total_runtime, total_runtime);
 }
