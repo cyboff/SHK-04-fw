@@ -6,8 +6,8 @@
 
 //defaults EEPROM
 #define MODEL_TYPE 50
-#define MODEL_SERIAL_NUMBER 23004
-#define FW_VERSION 2310           
+#define MODEL_SERIAL_NUMBER 23001
+#define FW_VERSION 2312           
 
 #define DEFAULT_MODBUS_ID MODEL_SERIAL_NUMBER % 1000 % 247 // MODBUS ID slave (range 1..247)
 #define DEFAULT_MODBUS_SPEED 19200
@@ -18,7 +18,7 @@
 #define DEFAULT_THRESHOLD_SET1 50 // min 20, max 80
 #define DEFAULT_GAIN_SET2 75
 #define DEFAULT_THRESHOLD_SET2 50
-#define DEFAULT_GAIN_OFFSET 127   // gain adjustment via AD5144A RDAC1+RDAC3 
+#define DEFAULT_GAIN_OFFSET 128   // gain adjustment via AD5144A RDAC1+RDAC3 
 
 #if MODEL_TYPE == 10
 #define DEFAULT_WINDOW_BEGIN 45 // min 5, max 45
@@ -164,11 +164,11 @@ enum
   MODBUS_FORMAT, // SERIAL_8N1 = 0, SERIAL_8E1 = 6, SERIAL_8O1 = 7 , SERIAL_8N2 = 4
 
   SET,            // MAN1 = 1, MAN2 = 2, RELAY = 3 (REL1 || REL2),
-  GAIN_SET1,      // valid values 1,2,4,8,16,32,64 * 100
+  GAIN_SET1,      // 0 to 100 * 100
   THRESHOLD_SET1, // min 20, max 80 * 100
-  GAIN_SET2,      // valid values 1,2,4,8,16,32,64 * 100
+  GAIN_SET2,      // 0 to 100 * 100
   THRESHOLD_SET2, // min 20, max 80 * 100
-
+  GAIN_OFFSET,     // 0 to 255
   WINDOW_BEGIN,    // min 5, max 50 * 100
   WINDOW_END,      // min 50 max 95 * 100
   POSITION_MODE,   // rising = 1, falling = 2, peak = 3 , hmd = 4
@@ -188,7 +188,7 @@ enum
   POSITION_VALUE,   // 0-100% * 100
   POSITION_VALUE_AVG,  // 0-100% * 100
 
-  MOTOR_TIME_DIFF,
+  MOTOR_TIME_DIFF,   // one rotation of the motor should be exactly 6000us
   EXEC_TIME_ADC,     // exectime of adc conversions
   EXEC_TIME,         // exectime of adc conversions + results calculation
   EXEC_TIME_TRIGGER, // exectime of each triggering

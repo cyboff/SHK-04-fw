@@ -858,12 +858,14 @@ void adc0_dma_isr(void)
 
   for (int i = 0; i < ANALOG_BUFFER_SIZE; i++) // copy DMA buffer
   {
-    //adc_data[i] = (4095 - adc0_buf[i+12]) >> 4; // forget first 12 values because of noise peak after ADC restart
-    
-    if ((adc0_buf[i+12] < 2048) && (adc0_buf[i+12] >= 0))  // forget first 12 values because of noise peak after ADC restart
+    // SSK-SHK-05 has inverted signal on ADC
+    if ((adc0_buf[i+12] < 2048) && (adc0_buf[i+12] >= 0))  // ignoring first 12 values because of noise peak after ADC restart
        adc_data[i] = (2047 - adc0_buf[i+12]) >> 3;
     else adc_data[i] = 0;
 
+    //adc_data[i] = (4095 - adc0_buf[i+12]) >> 4; // full wave inverted ... ignoring first 12 values because of noise peak after ADC restart
+ 
+    // SSK-SHK-04
     // if (adc0_buf[i] < 2048)
     //   adc_data[i] = 0;
     // else
@@ -1050,7 +1052,7 @@ void updateResults()
     peakValueOut = 0xBFFF;      // 16mA on intensity analog output
   }
 
-  // warning! SPI makes noise, do not send data through SPI when ADC is running
+  // warning! SPI makes noise peaks in analog signal, do not send data through SPI when ADC is running
 
   // switch (analogOutMode)
   // { // an1/an2: "1Int 2Pos" = 0x0501, "1Pos 2Int" = 0x0105, "1Int 2Int" = 0x0505, "1Pos 2Pos" = 0x0101
@@ -1136,6 +1138,7 @@ void checkModbus()
   holdingRegs[THRESHOLD_SET1] = thre1 * 100;
   holdingRegs[GAIN_SET2] = pga2 * 100;
   holdingRegs[THRESHOLD_SET2] = thre2 * 100;
+  holdingRegs[GAIN_OFFSET] = (uint8_t)((int8_t)gainOffset-128);   // convert 0-255 to -128-127
 
   holdingRegs[WINDOW_BEGIN] = windowBegin * 100;
   holdingRegs[WINDOW_END] = windowEnd * 100;
@@ -1258,6 +1261,12 @@ void checkModbus()
   {
     thre2 = holdingRegs[THRESHOLD_SET2] / 100;
     eeprom_writeInt(EE_ADDR_threshold_set2, thre2);
+  }
+
+  if (((int8_t)holdingRegs[GAIN_OFFSET] != (int8_t)gainOffset-128) && (holdingRegs[GAIN_OFFSET] >= 0) && (holdingRegs[GAIN_OFFSET] <= 255))
+  {
+    gainOffset = (int8_t)holdingRegs[GAIN_OFFSET]+128;   // convert -128-127 to 0-255
+    eeprom_writeInt(EE_ADDR_gain_offset, gainOffset);
   }
 
   if ((holdingRegs[WINDOW_BEGIN] != (windowBegin * 100)) && (holdingRegs[WINDOW_BEGIN] >= 500) && (holdingRegs[WINDOW_BEGIN] <= 4500))

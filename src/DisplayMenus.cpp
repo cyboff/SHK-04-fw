@@ -43,7 +43,7 @@ unsigned int menu_modbusID = 1;
 unsigned int menu_modbusSpeed = 19200;
 unsigned int menu_modbusFormat = SERIAL_8N1;
 
-int menu_windowBegin = 0, menu_windowEnd = 0, menu_positionOffset = 0, menu_positionMode = 0, menu_analogOutMode = 0;
+int menu_windowBegin = 0, menu_windowEnd = 0, menu_positionMode = 0, menu_analogOutMode = 0;
 int menu_filterPosition = 0, menu_filterOn = 0, menu_filterOff = 0;
 const char *menu_positionModeDisp[] = {"RISE", "FALL", "PEAK", " HMD"};
 const char *menu_analogOutModeDisp[] = {"Pos", "Int"};
@@ -231,9 +231,6 @@ void displayMenu(void)
     case MENU_ANALOG_OUT2_MODE:
       setAnalogOut2Mode();
       break;
-    case MENU_POSITION_OFFSET:
-      setPositionOffset();
-      break;
     case MENU_INFO:
       showInfoMenu();
       break;
@@ -298,6 +295,8 @@ void showMainMenu(void)
 
   if (currentMenuOption == 0)
     displayPrint("Int %3d%%", peakValueDisp);
+    //displayPrint("GOff %3d%%", gainOffset);
+    //displayPrint("POff%4d",positionOffset);
   else if (!menuTimeout)
     menuTimeout = TIMEOUT_MENU;
 
@@ -422,11 +421,11 @@ void showSetupMenu(void)
   if (currentMenuOption == 0)
     displayPrint("Sensor  ");
   if (currentMenuOption == 1)
-    displayPrint("Modbus  ");
+    displayPrint("Analog  ");
   if (currentMenuOption == 2)
     displayPrint("Filters ");
   if (currentMenuOption == 3)
-    displayPrint("Analog  ");
+    displayPrint("Modbus  ");
   if (currentMenuOption == 4)
     displayPrint("Info    ");
   if (currentMenuOption == 5)
@@ -472,7 +471,7 @@ void showSetupMenu(void)
     }
     if (currentMenuOption == 1)
     {
-      currentMenu = MENU_MODBUS;
+      currentMenu = MENU_ANALOG;
       currentMenuOption = 0;
     }
     if (currentMenuOption == 2)
@@ -482,7 +481,7 @@ void showSetupMenu(void)
     }
     if (currentMenuOption == 3)
     {
-      currentMenu = MENU_ANALOG;
+      currentMenu = MENU_MODBUS;
       currentMenuOption = 0;
     }
     if (currentMenuOption == 4)
@@ -853,7 +852,7 @@ void showModbusMenu(void)
   if (lastKey == BTN_A || lastKey == BTN_AH)
   { // ESC
     currentMenu = MENU_SETUP;
-    currentMenuOption = 1;
+    currentMenuOption = 3;
   }
   if (lastKey == BTN_D || lastKey == BTN_DH)
   { // ENTER
@@ -1302,13 +1301,11 @@ void showAnalogMenu(void)
     displayPrint("wBeg%3d%%", windowBegin);
   if (currentMenuOption == 4)
     displayPrint("wEnd%3d%%", windowEnd);
-  if (currentMenuOption == 5)
-    displayPrint("Offs%4d", positionOffset);
 
   if (lastKey == BTN_A || lastKey == BTN_AH)
   { // ESC
     currentMenu = MENU_SETUP;
-    currentMenuOption = 3;
+    currentMenuOption = 1;
   }
 
   if (lastKey == BTN_B || lastKey == BTN_BH)
@@ -1316,12 +1313,12 @@ void showAnalogMenu(void)
     if (currentMenuOption > 0)
       currentMenuOption--;
     else
-      currentMenuOption = 5;
+      currentMenuOption = 4;
   }
 
   if (lastKey == BTN_C || lastKey == BTN_CH)
   {
-    if (currentMenuOption < 5)
+    if (currentMenuOption < 4)
       currentMenuOption++;
     else
       currentMenuOption = 0;
@@ -1358,12 +1355,6 @@ void showAnalogMenu(void)
       currentMenu = MENU_WINDOW_END;
       currentMenuOption = 0;
       menu_windowEnd = windowEnd;
-    }
-    if (currentMenuOption == 5)
-    {
-      currentMenu = MENU_POSITION_OFFSET;
-      currentMenuOption = 0;
-      menu_positionOffset = positionOffset;
     }
   }
 }
@@ -1582,58 +1573,6 @@ void setWindowEnd(void)
     delay(500);
     currentMenu = MENU_ANALOG;
     currentMenuOption = 4;
-  }
-}
-
-void setPositionOffset(void)
-{
-  if (!menuTimeout)
-    menuTimeout = TIMEOUT_MENU;
-
-  if (blinkMenu)
-    displayPrint("Offs%4d", menu_positionOffset);
-  else
-    displayPrint("    %4d", menu_positionOffset);
-
-  if (lastKey == BTN_BH)
-  { // decrement
-    menu_positionOffset = menu_positionOffset - 10;
-  }
-  if (lastKey == BTN_CH)
-  { // increment
-    menu_positionOffset = menu_positionOffset + 10;
-  }
-
-  if (lastKey == BTN_B)
-  { // decrement
-    menu_positionOffset--;
-  }
-  if (lastKey == BTN_C)
-  { // increment
-    menu_positionOffset++;
-  }
-
-  //check range, min 0, max 2000
-  if (menu_positionOffset < 0)
-    menu_positionOffset = 2000;
-  if (menu_positionOffset > 2000)
-    menu_positionOffset = 0;
-
-  if (lastKey == BTN_A || lastKey == BTN_AH)
-  {
-    currentMenu = MENU_ANALOG;
-    currentMenuOption = 5;
-  }
-
-  if (lastKey == BTN_D || lastKey == BTN_DH)
-  { // SAVE
-    positionOffset = menu_positionOffset;
-    //adc0_busy = 0;
-    eeprom_writeInt(EE_ADDR_position_offset, positionOffset); //save to EEPROM
-    displayPrint("SAVED!!!");
-    delay(500);
-    currentMenu = MENU_ANALOG;
-    currentMenuOption = 5;
   }
 }
 
