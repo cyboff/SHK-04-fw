@@ -1675,7 +1675,7 @@ void showResetMenu(void)
   if (lastKey == BTN_A || lastKey == BTN_AH)
   {
     currentMenu = MENU_INFO;
-    currentMenuOption = 5;
+    currentMenuOption = 6;
   }
 
   if (lastKey == BTN_D || lastKey == BTN_DH)
@@ -1683,7 +1683,7 @@ void showResetMenu(void)
     if (currentMenuOption == 0)
     {
       currentMenu = MENU_INFO;
-      currentMenuOption = 5;
+      currentMenuOption = 6;
     }
     if (currentMenuOption == 1)
     {
@@ -1699,7 +1699,7 @@ void showResetMenu(void)
       displayPrint("RESET!!!");
       delay(500);
       currentMenu = MENU_INFO;
-      currentMenuOption = 5;
+      currentMenuOption = 6;
     }
   }
 }

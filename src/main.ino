@@ -38,7 +38,7 @@ volatile uint16_t windowBegin = 0, windowEnd = 0, positionOffset = 0, positionMo
 volatile uint16_t filterPosition = 0, filterOn = 0, filterOff = 0;
 
 volatile uint16_t thre256 = 0, thre = 0, thre1 = 0, thre2 = 0;
-volatile uint16_t set = 0, pga = 0, pga1 = 0, pga2 = 0, gainOffset = 0, oldgainOffset = 0;
+volatile uint16_t set = 0, pga = 0, pga1 = 0, pga2 = 0, gainOffset = 0, oldpga = 0, oldgainOffset = 0;
 
 // diagnosis
 volatile uint8_t celsius = 0; // internal temp in deg of Celsius
@@ -66,7 +66,7 @@ ADC *adc = new ADC(); // adc object
 DMAChannel adc0_dma;
 
 DMAMEM static volatile uint16_t __attribute__((aligned(32))) adc0_buf[512]; // buffer is bigger because there is noise peak after ADC is restarted
-volatile uint8_t adc_data[ANALOG_BUFFER_SIZE] = {0};                                       // ADC_0 9-bit resolution for differential - sign + 8 bit
+volatile uint8_t adc_data[ANALOG_BUFFER_SIZE] = {0};                        // ADC_0 9-bit resolution for differential - sign + 8 bit
 volatile uint16_t value_buffer[TOTAL_ERRORS - AN_VALUES] = {0};
 volatile boolean adc0_busy = false;
 unsigned int freq = 1000000; // PDB frequency
@@ -199,6 +199,9 @@ void setup()
 
   EEPROM_init();
 
+  
+  oldpga = 1000;   // intentionally bad values to update RDACs with proper values
+  oldgainOffset = 1000; 
   checkSET();
 
   // initialize filters
@@ -314,26 +317,27 @@ void setup()
 void loop()
 {
 
-  // #if defined(SERIAL_DEBUG)
-  //   // print all used EEPROM words
-  //   if (!testTimeout)
-  //   {
-  //     Serial.print("EEreadL: ");
-  //     for (int i = 0; i < 21; i++)
-  //     {
-  //       Serial.printf("%u ", EEPROM.read(i * 2) | EEPROM.read(i * 2 + 1) << 8);
-  //     }
-  //     Serial.println();
-  //     Serial.print("hRegL: ");
-  //     for (int i = 0; i < TOTAL_REGS_SIZE; i++)
-  //     {
-  //       Serial.printf("%u ", holdingRegs[i]);
-  //     }
-  //     Serial.println();
+  #if defined(SERIAL_DEBUG)
+    // print all used EEPROM words
+    if (!testTimeout)
+    {
+      Serial.print("EEreadL: ");
+      for (int i = 0; i < 43; i++)
+      {
+        Serial.printf("%u ", eeprom_readInt(i));
+        i++;
+      }
+      Serial.println();
+      Serial.print("hRegL: ");
+      for (int i = 0; i < TOTAL_REGS_SIZE; i++)
+      {
+        Serial.printf("%u ", holdingRegs[i]);
+      }
+      Serial.println();
 
-  //     testTimeout = 5000; // 5 sec
-  //   }
-  // #endif
+      testTimeout = 5000; // 5 sec
+    }
+  #endif
 
   // check SET
   checkSET();
@@ -356,8 +360,6 @@ void loop()
 // check SET and load proper settings
 void checkSET()
 {
-  uint16_t oldpga = pga; // save old value to update RDAC only if pga changed
-
   switch (set) // RELAY = 3 (REL1 || REL2), MAN1 = 1, MAN2 = 2
   {
   case 1:
@@ -391,7 +393,7 @@ void checkSET()
 
   if (oldpga != pga)
   { // update gain: AD5144A RDAC2+RDAC4
-    uint16_t pga256 = map(pga, 0, 100, 0, 255);
+    uint8_t pga256 = map(pga, 0, 100, 0, 255);
 
     Wire.beginTransmission(0x2B);
     int error = Wire.endTransmission();
@@ -403,28 +405,35 @@ void checkSET()
       Wire.write(0x13);   // write to RDAC4 (command 1: C0=1; A3,A2 = 0; A1,A0 = 1)
       Wire.write(pga256); // pga in 8 bit
       Wire.endTransmission();
+
+#if defined(SERIAL_DEBUG)
+      Serial.printf("Pga: %u i2c: %u\n", pga, pga256);
+#endif
+      oldpga = pga;
     }
   }
-   
-  //gainOffset = 127;
+
+  // gainOffset = 127;
 
   if (oldgainOffset != gainOffset)
   { // update gain offset: AD5144A RDAC1+RDAC3
+
+    uint8_t offset = ((int8_t)gainOffset + 128) & 0xFF;
 
     Wire.beginTransmission(0x2B);
     int error = Wire.endTransmission();
     if (!error)
     {
       Wire.beginTransmission(0x2B);
-      Wire.write(0x10);       // write to RDAC1
-      Wire.write((int8_t)gainOffset+128); // pga in 8 bit   convert gainOffset from -128 to 127 to  0 to 255
-      Wire.write(0x12);       // write to RDAC3
-      Wire.write((int8_t)gainOffset+128); // pga in 8 bit   convert gainOffset from -128 to 127 to  0 to 255
+      Wire.write(0x10);   // write to RDAC1
+      Wire.write(offset); // pga in 8 bit   convert gainOffset from -128 to 127 to  0 to 255
+      Wire.write(0x12);   // write to RDAC3
+      Wire.write(offset); // pga in 8 bit   convert gainOffset from -128 to 127 to  0 to 255
       Wire.endTransmission();
-      
-      // #if defined(SERIAL_DEBUG)
-      //        Serial.printf("Gain offset eeprom: %u i2c: %u\n", gainOffset, (int8_t)gainOffset+128);
-      // #endif
+
+#if defined(SERIAL_DEBUG)
+      Serial.printf("Gain offset eeprom: %u i2c: %u\n", gainOffset, offset);
+#endif
 
       oldgainOffset = gainOffset;
     }
@@ -513,8 +522,8 @@ void checkALARM()
   if (!refreshMenuTimeout)
   {
 
-    //celsius = (uint8_t)tempmonGetTemp();  // internal CPU temp Teensy 4.0
-    celsius = (uint8_t)getI2Ctemperature();  // temperature from ADT75
+    // celsius = (uint8_t)tempmonGetTemp();  // internal CPU temp Teensy 4.0
+    celsius = (uint8_t)getI2Ctemperature(); // temperature from ADT75
 
     if (celsius > max_temperature)
     {
@@ -864,18 +873,19 @@ void adc0_dma_isr(void)
   for (int i = 0; i < ANALOG_BUFFER_SIZE; i++) // copy DMA buffer
   {
     // SSK-SHK-05 has inverted signal on ADC
-    if ((adc0_buf[i+12] < 2048) && (adc0_buf[i+12] >= 0))  // ignoring first 12 values because of noise peak after ADC restart
-       adc_data[i] = (2047 - adc0_buf[i+12]) >> 3;
-    else adc_data[i] = 0;
+    if ((adc0_buf[i + 12] < 2048) && (adc0_buf[i + 12] >= 0)) // ignoring first 12 values because of noise peak after ADC restart
+      adc_data[i] = (2047 - adc0_buf[i + 12]) >> 3;
+    else
+      adc_data[i] = 0;
 
-    //adc_data[i] = (4095 - adc0_buf[i+12]) >> 4; // full wave inverted ... ignoring first 12 values because of noise peak after ADC restart
- 
+    // adc_data[i] = (4095 - adc0_buf[i+12]) >> 4; // full wave inverted ... ignoring first 12 values because of noise peak after ADC restart
+
     // SSK-SHK-04
     // if (adc0_buf[i] < 2048)
     //   adc_data[i] = 0;
     // else
     //   adc_data[i] = (adc0_buf[i] - 2048) >> 3; // Teensy 4.0 has no analog PGA , 12bit to 8bit positive wave only
-    //  
+    //
     // adc_data[i] = adc0_buf[i] >> 4;  // full wave Teensy 4.0
 
     // #if defined(SERIAL_DEBUG)
@@ -937,9 +947,9 @@ void updateResults()
       if (adc_data[i] > peakValue)
       {
         peakValue = adc_data[i];
-// #if defined(SERIAL_DEBUG)
-//         Serial.printf("%3u: %5u %5u\n", i, adc0_buf[i], adc_data[i]);
-// #endif
+        // #if defined(SERIAL_DEBUG)
+        //         Serial.printf("%3u: %5u %5u\n", i, adc0_buf[i], adc_data[i]);
+        // #endif
       }
       peak[i] = peakValue;
 
@@ -1143,7 +1153,7 @@ void checkModbus()
   holdingRegs[THRESHOLD_SET1] = thre1 * 100;
   holdingRegs[GAIN_SET2] = pga2 * 100;
   holdingRegs[THRESHOLD_SET2] = thre2 * 100;
-  holdingRegs[GAIN_OFFSET] = gainOffset;   // range -128 to 127 saved as 0 to 255
+  holdingRegs[GAIN_OFFSET] = gainOffset; // range -128 to 127 saved as 0 to 255
 
   holdingRegs[WINDOW_BEGIN] = windowBegin * 100;
   holdingRegs[WINDOW_END] = windowEnd * 100;
@@ -1356,13 +1366,13 @@ void checkModbus()
   {
     if (holdingRegs[IO_STATE] & (1 << IO_IR_LED))
     { // check if IO_IR_LED bit is set
-      //digitalWrite(IR_LED, HIGH);
+      // digitalWrite(IR_LED, HIGH);
       testTimeout = TIMEOUT_TEST;
       intTest = true;
     }
     else
     {
-      //digitalWrite(IR_LED, LOW);
+      // digitalWrite(IR_LED, LOW);
       intTest = false;
     }
   }
@@ -1374,7 +1384,6 @@ void checkModbus()
       SCB_AIRCR = 0x05FA0004; // software reset on all Cortex M processors
     }
   }
-
 }
 
 // check void ADC_Module::startPDB() in ADC_Module.cpp for //NVIC_ENABLE_IRQ(IRQ_PDB);
