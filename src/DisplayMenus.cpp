@@ -8,16 +8,12 @@
 #include "DisplayMenus.h"
 #include "SimpleModbusSlave.h"
 
-
-
 volatile boolean alarmChecked = false;
 volatile boolean extTest = false;
 volatile boolean intTest = false;
 volatile int currentMenu = MENU_MAIN;
 volatile int currentMenuOption = 0;
 volatile int btnHoldCounter = 0;
-
-
 
 // Menu variables
 volatile char lastKey = BTN_NONE; // Last key pressed
@@ -32,7 +28,7 @@ volatile int resultButtonB = STATE_NORMAL; // global value set by checkButton()
 volatile int resultButtonC = STATE_NORMAL; // global value set by checkButton()
 volatile int resultButtonD = STATE_NORMAL; // global value set by checkButton()
 
-//menu login
+// menu login
 int passwd = 0; // correct passwd is 1122
 int nextBtn = 0;
 boolean loggedIn = false;
@@ -45,9 +41,8 @@ unsigned int menu_modbusFormat = SERIAL_8N1;
 
 int menu_windowBegin = 0, menu_windowEnd = 0, menu_positionMode = 0, menu_analogOutMode = 0;
 int menu_filterPosition = 0, menu_filterOn = 0, menu_filterOff = 0;
-const char *menu_positionModeDisp[] = {"RISE", "FALL", "PEAK", " HMD"};
+const char *menu_positionModeDisp[] = {"  LS", " HMD"};
 const char *menu_analogOutModeDisp[] = {"Pos", "Int"};
-
 
 const char *menu_setDisp[] = {"MAN1", "MAN2", "REL ", "REL1", "REL2"};
 int setDispIndex = 0;
@@ -237,12 +232,12 @@ void displayMenu(void)
     case MENU_RESET:
       showResetMenu();
       break;
-    default: //showMainMenu();
+    default: // showMainMenu();
       break;
     }
     refreshMenuTimeout = TIMEOUT_REFRESH_MENU;
     blinkMenu = !blinkMenu;
-    //blink LED_POWER
+    // blink LED_POWER
     digitalWriteFast(LED_POWER, !digitalReadFast(LED_POWER));
   }
 }
@@ -295,8 +290,8 @@ void showMainMenu(void)
 
   if (currentMenuOption == 0)
     displayPrint("Int %3d%%", peakValueDisp);
-    //displayPrint("GOff %3d%%", gainOffset);
-    //displayPrint("POff%4d",positionOffset);
+  // displayPrint("GOff %3d%%", gainOffset);
+  // displayPrint("POff%4d",positionOffset);
   else if (!menuTimeout)
     menuTimeout = TIMEOUT_MENU;
 
@@ -308,7 +303,7 @@ void showMainMenu(void)
     displayPrint("Gain %3d", pga);
   if (currentMenuOption == 3)
     displayPrint("Thre %2d%%", thre);
-  //if (currentMenuOption == 4) displayPrint("Set %s", menu_setDisp[setDispIndex]);
+  // if (currentMenuOption == 4) displayPrint("Set %s", menu_setDisp[setDispIndex]);
   if (currentMenuOption == 4)
   {
     if (digitalReadFast(LASER))
@@ -491,12 +486,13 @@ void showSetupMenu(void)
     }
     if (currentMenuOption == 5)
     {
-      if (!intTest) {
-      testTimeout = TIMEOUT_TEST;
-      intTest = true;
+      if (!intTest)
+      {
+        testTimeout = TIMEOUT_TEST;
+        intTest = true;
       }
       else
-      intTest = false;
+        intTest = false;
       // currentMenu = MENU_SETUP;
       // currentMenuOption = 5;
     }
@@ -613,15 +609,15 @@ void setGain1Menu(void)
     menu_pga = 1;
 
   if (lastKey == BTN_A || lastKey == BTN_AH)
-  { //ESC
+  { // ESC
     currentMenu = MENU_SENSOR;
     currentMenuOption = 0;
   }
 
   if (lastKey == BTN_D || lastKey == BTN_DH)
-  { //SAVE
+  { // SAVE
     pga1 = menu_pga;
-    eeprom_writeInt(EE_ADDR_gain_set1, pga1); //save to EEPROM
+    eeprom_writeInt(EE_ADDR_gain_set1, pga1); // save to EEPROM
     displayPrint("SAVED!!!");
     delay(500);
     currentMenu = MENU_SENSOR;
@@ -656,7 +652,7 @@ void setThre1Menu(void)
   }
 
   if (lastKey == BTN_A || lastKey == BTN_AH)
-  { //ESC
+  { // ESC
     currentMenu = MENU_SENSOR;
     currentMenuOption = 1;
   }
@@ -664,7 +660,7 @@ void setThre1Menu(void)
   if (lastKey == BTN_D || lastKey == BTN_DH)
   { // SAVE
     thre1 = menu_thre;
-    eeprom_writeInt(EE_ADDR_threshold_set1, thre1); //save to EEPROM
+    eeprom_writeInt(EE_ADDR_threshold_set1, thre1); // save to EEPROM
     displayPrint("SAVED!!!");
     delay(500);
     currentMenu = MENU_SENSOR;
@@ -698,15 +694,15 @@ void setGain2Menu(void)
     menu_pga = 1;
 
   if (lastKey == BTN_A || lastKey == BTN_AH)
-  { //ESC
+  { // ESC
     currentMenu = MENU_SENSOR;
     currentMenuOption = 2;
   }
 
   if (lastKey == BTN_D || lastKey == BTN_DH)
-  { //SAVE
+  { // SAVE
     pga2 = menu_pga;
-    eeprom_writeInt(EE_ADDR_gain_set2, pga2); //save to EEPROM
+    eeprom_writeInt(EE_ADDR_gain_set2, pga2); // save to EEPROM
     displayPrint("SAVED!!!");
     delay(500);
     currentMenu = MENU_SENSOR;
@@ -740,7 +736,7 @@ void setThre2Menu(void)
   }
 
   if (lastKey == BTN_A || lastKey == BTN_AH)
-  { //ESC
+  { // ESC
     currentMenu = MENU_SENSOR;
     currentMenuOption = 3;
   }
@@ -748,7 +744,7 @@ void setThre2Menu(void)
   if (lastKey == BTN_D || lastKey == BTN_DH)
   { // SAVE
     thre2 = menu_thre;
-    eeprom_writeInt(EE_ADDR_threshold_set2, thre2); //save to EEPROM
+    eeprom_writeInt(EE_ADDR_threshold_set2, thre2); // save to EEPROM
     displayPrint("SAVED!!!");
     delay(500);
     currentMenu = MENU_SENSOR;
@@ -798,7 +794,7 @@ void setSetMenu(void)
   }
 
   if (lastKey == BTN_A || lastKey == BTN_AH)
-  { //ESC
+  { // ESC
     currentMenu = MENU_SENSOR;
     currentMenuOption = 4;
   }
@@ -806,7 +802,7 @@ void setSetMenu(void)
   if (lastKey == BTN_D || lastKey == BTN_DH)
   { // SAVE
     set = menu_set;
-    eeprom_writeInt(EE_ADDR_set, set); //save to EEPROM
+    eeprom_writeInt(EE_ADDR_set, set); // save to EEPROM
     displayPrint("SAVED!!!");
     delay(500);
     currentMenu = MENU_SENSOR;
@@ -890,7 +886,6 @@ void setModbusID(void)
   else
     displayPrint("     %3d", menu_modbusID);
 
-
   if (lastKey == BTN_B || lastKey == BTN_BH)
   { // decrement
     menu_modbusID--;
@@ -915,7 +910,7 @@ void setModbusID(void)
   if (lastKey == BTN_D || lastKey == BTN_DH)
   { // SAVE
     modbusID = menu_modbusID;
-    eeprom_writeInt(EE_ADDR_modbus_ID, modbusID); //save to EEPROM
+    eeprom_writeInt(EE_ADDR_modbus_ID, modbusID); // save to EEPROM
 
     // restart communication
     Serial1.flush();
@@ -965,7 +960,7 @@ void setModbusSpeed(void)
   if (lastKey == BTN_D || lastKey == BTN_DH)
   { // SAVE
     modbusSpeed = menu_modbusSpeed;
-    eeprom_writeInt(EE_ADDR_modbus_Speed, modbusSpeed / 100); //save to EEPROM
+    eeprom_writeInt(EE_ADDR_modbus_Speed, modbusSpeed / 100); // save to EEPROM
 
     // restart communication
     Serial1.flush();
@@ -1015,7 +1010,7 @@ void setModbusFormat(void)
   if (lastKey == BTN_D || lastKey == BTN_DH)
   { // SAVE
     modbusFormat = menu_modbusFormat;
-    eeprom_writeInt(EE_ADDR_modbus_Format, modbusFormat); //save to EEPROM
+    eeprom_writeInt(EE_ADDR_modbus_Format, modbusFormat); // save to EEPROM
 
     // restart communication
     Serial1.flush();
@@ -1042,7 +1037,7 @@ void showFiltersMenu(void)
     displayPrint("fOff%4d", filterOff);
 
   if (lastKey == BTN_A || lastKey == BTN_AH)
-  { //ESC
+  { // ESC
     currentMenu = MENU_SETUP;
     currentMenuOption = 2;
   }
@@ -1129,7 +1124,7 @@ void setFilterPosition(void)
     menu_filterPosition++;
   }
 
-  //check range in ms
+  // check range in ms
   if (menu_filterPosition < 0)
     menu_filterPosition = 9999;
   if (menu_filterPosition > 9999)
@@ -1144,7 +1139,7 @@ void setFilterPosition(void)
   if (lastKey == BTN_D || lastKey == BTN_DH)
   { // SAVE
     filterPosition = menu_filterPosition;
-    eeprom_writeInt(EE_ADDR_filter_position, filterPosition); //save to EEPROM
+    eeprom_writeInt(EE_ADDR_filter_position, filterPosition); // save to EEPROM
     displayPrint("SAVED!!!");
     delay(500);
     currentMenu = MENU_FILTERS;
@@ -1195,7 +1190,7 @@ void setFilterOn(void)
     menu_filterOn++;
   }
 
-  //check range in ms
+  // check range in ms
   if (menu_filterOn < 0)
     menu_filterOn = 9999;
   if (menu_filterOn > 9999)
@@ -1210,7 +1205,7 @@ void setFilterOn(void)
   if (lastKey == BTN_D || lastKey == BTN_DH)
   { // SAVE
     filterOn = menu_filterOn;
-    eeprom_writeInt(EE_ADDR_filter_on, filterOn); //save to EEPROM
+    eeprom_writeInt(EE_ADDR_filter_on, filterOn); // save to EEPROM
     displayPrint("SAVED!!!");
     delay(500);
     currentMenu = MENU_FILTERS;
@@ -1262,7 +1257,7 @@ void setFilterOff(void)
     menu_filterOff++;
   }
 
-  //check range in ms
+  // check range in ms
   if (menu_filterOff < 0)
     menu_filterOff = 9999;
   if (menu_filterOff > 9999)
@@ -1277,7 +1272,7 @@ void setFilterOff(void)
   if (lastKey == BTN_D || lastKey == BTN_DH)
   { // SAVE
     filterOff = menu_filterOff;
-    eeprom_writeInt(EE_ADDR_filter_off, filterOff); //save to EEPROM
+    eeprom_writeInt(EE_ADDR_filter_off, filterOff); // save to EEPROM
     displayPrint("SAVED!!!");
     delay(500);
     currentMenu = MENU_FILTERS;
@@ -1296,7 +1291,7 @@ void showAnalogMenu(void)
   if (currentMenuOption == 1)
     displayPrint("AnO2 %s", menu_analogOutModeDisp[(analogOutMode & 0xFF) >> 2]);
   if (currentMenuOption == 2)
-    displayPrint("mPos%s", menu_positionModeDisp[positionMode-1]);
+    displayPrint("mPos%s", menu_positionModeDisp[(positionMode == 1) ? 0 : 1]);
   if (currentMenuOption == 3)
     displayPrint("wBeg%3d%%", windowBegin);
   if (currentMenuOption == 4)
@@ -1342,7 +1337,7 @@ void showAnalogMenu(void)
     {
       currentMenu = MENU_POSITION_MODE;
       currentMenuOption = 0;
-      menu_positionMode = positionMode-1;
+      menu_positionMode = (positionMode == 1) ? 0 : 1;
     }
     if (currentMenuOption == 3)
     {
@@ -1359,13 +1354,11 @@ void showAnalogMenu(void)
   }
 }
 
-
 void setAnalogOut1Mode(void)
 {
   if (!menuTimeout)
     menuTimeout = TIMEOUT_MENU;
 
-  
   if (blinkMenu)
     displayPrint("AnO1 %s", menu_analogOutModeDisp[menu_analogOutMode]);
   else
@@ -1395,8 +1388,15 @@ void setAnalogOut1Mode(void)
 
   if (lastKey == BTN_D || lastKey == BTN_DH)
   { // SAVE
-    if (menu_analogOutMode) {analogOutMode |= (1 << 10);} else {analogOutMode &= ~(1 << 10);}  // set vs clear bit: 0x05XX vs 0x01XX
-    eeprom_writeInt(EE_ADDR_analog_out_mode, analogOutMode); //save to EEPROM
+    if (menu_analogOutMode)
+    {
+      analogOutMode |= (1 << 10);
+    }
+    else
+    {
+      analogOutMode &= ~(1 << 10);
+    }                                                        // set vs clear bit: 0x05XX vs 0x01XX
+    eeprom_writeInt(EE_ADDR_analog_out_mode, analogOutMode); // save to EEPROM
     displayPrint("SAVED!!!");
     delay(500);
     currentMenu = MENU_ANALOG;
@@ -1409,7 +1409,6 @@ void setAnalogOut2Mode(void)
   if (!menuTimeout)
     menuTimeout = TIMEOUT_MENU;
 
-  
   if (blinkMenu)
     displayPrint("AnO2 %s", menu_analogOutModeDisp[menu_analogOutMode]);
   else
@@ -1439,8 +1438,15 @@ void setAnalogOut2Mode(void)
 
   if (lastKey == BTN_D || lastKey == BTN_DH)
   { // SAVE
-    if (menu_analogOutMode) {analogOutMode |= (1 << 2);} else {analogOutMode &= ~(1 << 2);}  // set vs clear bit: 0xXX05 vs 0xXX01
-    eeprom_writeInt(EE_ADDR_analog_out_mode, analogOutMode); //save to EEPROM
+    if (menu_analogOutMode)
+    {
+      analogOutMode |= (1 << 2);
+    }
+    else
+    {
+      analogOutMode &= ~(1 << 2);
+    }                                                        // set vs clear bit: 0xXX05 vs 0xXX01
+    eeprom_writeInt(EE_ADDR_analog_out_mode, analogOutMode); // save to EEPROM
     displayPrint("SAVED!!!");
     delay(500);
     currentMenu = MENU_ANALOG;
@@ -1453,7 +1459,7 @@ void setPositionMode(void)
   if (!menuTimeout)
     menuTimeout = TIMEOUT_MENU;
 
-  // positionMode: RISE = 1, FALL = 2, PEAK = 3, HMD = 4 
+  // positionMode: LS = 1, HMD = 4
   if (blinkMenu)
     displayPrint("mPos%s", menu_positionModeDisp[menu_positionMode]);
   else
@@ -1464,12 +1470,12 @@ void setPositionMode(void)
     if (menu_positionMode > 0)
       menu_positionMode--;
     else
-      menu_positionMode = 3;
+      menu_positionMode = 1;
   }
 
   if (lastKey == BTN_C || lastKey == BTN_CH)
   { // increment by 1
-    if (menu_positionMode < 3)
+    if (menu_positionMode < 1)
       menu_positionMode++;
     else
       menu_positionMode = 0;
@@ -1483,8 +1489,8 @@ void setPositionMode(void)
 
   if (lastKey == BTN_D || lastKey == BTN_DH)
   { // SAVE
-    positionMode = menu_positionMode+1;
-    eeprom_writeInt(EE_ADDR_position_mode, positionMode); //save to EEPROM
+    positionMode = !menu_positionMode ? 1 : 4;
+    eeprom_writeInt(EE_ADDR_position_mode, positionMode); // save to EEPROM
     displayPrint("SAVED!!!");
     delay(500);
     currentMenu = MENU_ANALOG;
@@ -1511,7 +1517,7 @@ void setWindowBegin(void)
     menu_windowBegin = menu_windowBegin + 5;
   }
 
-  //check range, min 5, max 45
+  // check range, min 5, max 45
   if (menu_windowBegin < 5)
     menu_windowBegin = 45;
   if (menu_windowBegin > 45)
@@ -1526,7 +1532,7 @@ void setWindowBegin(void)
   if (lastKey == BTN_D || lastKey == BTN_DH)
   { // SAVE
     windowBegin = menu_windowBegin;
-    eeprom_writeInt(EE_ADDR_window_begin, windowBegin); //save to EEPROM
+    eeprom_writeInt(EE_ADDR_window_begin, windowBegin); // save to EEPROM
     displayPrint("SAVED!!!");
     delay(500);
     currentMenu = MENU_ANALOG;
@@ -1553,7 +1559,7 @@ void setWindowEnd(void)
     menu_windowEnd = menu_windowEnd + 5;
   }
 
-  //check range, min 55, max 95
+  // check range, min 55, max 95
   if (menu_windowEnd < 55)
     menu_windowEnd = 95;
   if (menu_windowEnd > 95)
@@ -1568,7 +1574,7 @@ void setWindowEnd(void)
   if (lastKey == BTN_D || lastKey == BTN_DH)
   { // SAVE
     windowEnd = menu_windowEnd;
-    eeprom_writeInt(EE_ADDR_window_end, windowEnd); //save to EEPROM
+    eeprom_writeInt(EE_ADDR_window_end, windowEnd); // save to EEPROM
     displayPrint("SAVED!!!");
     delay(500);
     currentMenu = MENU_ANALOG;
@@ -1597,7 +1603,7 @@ void showInfoMenu(void)
     displayPrint("FacReset");
 
   if (lastKey == BTN_A || lastKey == BTN_AH)
-  { //ESC
+  { // ESC
     currentMenu = MENU_SETUP;
     currentMenuOption = 4;
   }
@@ -1703,4 +1709,3 @@ void showResetMenu(void)
     }
   }
 }
-

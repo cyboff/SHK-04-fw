@@ -199,9 +199,8 @@ void setup()
 
   EEPROM_init();
 
-  
-  oldpga = 1000;   // intentionally bad values to update RDACs with proper values
-  oldgainOffset = 1000; 
+  oldpga = 1000; // intentionally bad values to update RDACs with proper values
+  oldgainOffset = 1000;
   checkSET();
 
   // initialize filters
@@ -317,27 +316,27 @@ void setup()
 void loop()
 {
 
-  #if defined(SERIAL_DEBUG)
-    // print all used EEPROM words
-    if (!testTimeout)
+#if defined(SERIAL_DEBUG)
+  // print all used EEPROM words
+  if (!testTimeout)
+  {
+    Serial.print("EEreadL: ");
+    for (int i = 0; i < 43; i++)
     {
-      Serial.print("EEreadL: ");
-      for (int i = 0; i < 43; i++)
-      {
-        Serial.printf("%u ", eeprom_readInt(i));
-        i++;
-      }
-      Serial.println();
-      Serial.print("hRegL: ");
-      for (int i = 0; i < TOTAL_REGS_SIZE; i++)
-      {
-        Serial.printf("%u ", holdingRegs[i]);
-      }
-      Serial.println();
-
-      testTimeout = 5000; // 5 sec
+      Serial.printf("%u ", eeprom_readInt(i));
+      i++;
     }
-  #endif
+    Serial.println();
+    Serial.print("hRegL: ");
+    for (int i = 0; i < TOTAL_REGS_SIZE; i++)
+    {
+      Serial.printf("%u ", holdingRegs[i]);
+    }
+    Serial.println();
+
+    testTimeout = 5000; // 5 sec
+  }
+#endif
 
   // check SET
   checkSET();
@@ -963,7 +962,7 @@ void updateResults()
           digitalWriteFast(FILTER_PIN, HIGH); // update internal pin for bounce2 filter
         }
 
-        // RISING EDGE mode
+        // LS (RISING EDGE mode)
         if ((positionMode == 1) && (!risingEdgeTime)) // only first occurence
         {
           if (peak[i - 1] <= hmdThreshold)
@@ -973,25 +972,25 @@ void updateResults()
           }
         }
 
-        // check for falling edge
-        if (positionMode == 2) // only the first occurence
-        {
-          if ((adc_data[i] < thre256 - hmdThresholdHyst) && (!fallingEdgeTime)) // added additional hysteresis to avoid flickering
-          {
-            fallingEdgeTime = i * 2;
-            digitalWriteFast(FILTER_PIN, HIGH); // update internal pin for bounce2 filter
-          }
-        }
+        // // check for falling edge
+        // if (positionMode == 2) // only the first occurence
+        // {
+        //   if ((adc_data[i] < thre256 - hmdThresholdHyst) && (!fallingEdgeTime)) // added additional hysteresis to avoid flickering
+        //   {
+        //     fallingEdgeTime = i * 2;
+        //     digitalWriteFast(FILTER_PIN, HIGH); // update internal pin for bounce2 filter
+        //   }
+        // }
 
-        // check for peak (but signal can be unstable)
-        if (positionMode == 3)
-        {
-          if (peak[i - 1] + 5 < peakValue) // check for peak
-          {
-            peakValueTime = i * 2;
-            digitalWriteFast(FILTER_PIN, HIGH); // update internal pin for bounce2 filter
-          }
-        }
+        // // check for peak (but signal can be unstable)
+        // if (positionMode == 3)
+        // {
+        //   if (peak[i - 1] + 5 < peakValue) // check for peak
+        //   {
+        //     peakValueTime = i * 2;
+        //     digitalWriteFast(FILTER_PIN, HIGH); // update internal pin for bounce2 filter
+        //   }
+        // }
       }
     }
   }
@@ -1026,21 +1025,26 @@ void updateResults()
 
   if (digitalReadFast(LED_SIGNAL)) // update position only when SIGNAL PRESENT
   {
-    switch (positionMode)
-    { // for display
-    case 1:
-      positionValueDisp = risingEdgeTime;
-      break;
-    case 2:
-      positionValueDisp = fallingEdgeTime;
-      break;
-    case 3:
-    case 4:
-      positionValueDisp = peakValueTime;
-      break;
-    default:
-      break;
-    }
+    if (positionMode == 1)                // for display
+      positionValueDisp = risingEdgeTime; // LS = 1
+    else
+      positionValueDisp = peakValueTime; // HMD = 4
+
+    // switch (positionMode)
+    // { // for display
+    // case 1:
+    //   positionValueDisp = risingEdgeTime;
+    //   break;
+    // case 2:
+    //   positionValueDisp = fallingEdgeTime;
+    //   break;
+    // case 3:
+    // case 4:
+    //   positionValueDisp = peakValueTime;
+    //   break;
+    // default:
+    //   break;
+    // }
   }
   else
     positionValueDisp = 0;
@@ -1189,7 +1193,7 @@ void checkModbus()
   }
 
   // arm_dcache_flush_delete((void *)holdingRegs, sizeof(holdingRegs));
-  holdingRegs[TOTAL_ERRORS] = modbus_update(holdingRegs);
+  holdingRegs[TOTAL_ERRORS] = modbus_update(holdingRegs) & 0xFFFF; // prevent overflow when there are errors
 
   // check changes made via ModBus - if values are valid, save them in EEPROM
 
