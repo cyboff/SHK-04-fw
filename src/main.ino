@@ -1049,7 +1049,7 @@ void updateResults()
   else
     positionValueDisp = 0;
 
-  positionValueAvg = approxSimpleMovingAverage(positionValueDisp, filterPosition);
+  positionValueAvg = approxSimpleMovingAverage(positionValueDisp, filterPosition + 6); // moving average of 6+ facets
 
   // remap and send to SPI
   positionValue = constrain(positionValueAvg, windowBegin * 10, windowEnd * 10); // only within measuring window
@@ -1110,22 +1110,22 @@ void updateResults()
 long approxSimpleMovingAverage(int new_value, int period)
 {
 
-  if (filterPosition)
-  {                                   // avoid div/0
-    if (!digitalReadFast(LED_SIGNAL)) // clear values
-    {
-      sma = 0;
-    }
-    else
-    {
-      sma *= (period - 1);
-      sma += new_value;
-      sma /= period;
-    }
-    return sma;
+  // if (filterPosition)
+  // {                                   // avoid div/0
+  if (!digitalReadFast(LED_SIGNAL)) // clear values
+  {
+    sma = 0;
   }
   else
-    return new_value;
+  {
+    sma *= (period - 1);
+    sma += new_value;
+    sma /= period;
+  }
+  return sma;
+  // }
+  // else
+  //   return new_value;
 }
 
 void checkSTATUS()

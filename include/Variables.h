@@ -6,8 +6,8 @@
 
 // defaults EEPROM
 #define MODEL_TYPE 50
-#define MODEL_SERIAL_NUMBER 23001
-#define FW_VERSION 2312
+#define MODEL_SERIAL_NUMBER 24001
+#define FW_VERSION 2401
 
 #define DEFAULT_MODBUS_ID MODEL_SERIAL_NUMBER % 1000 % 247 // MODBUS ID slave (range 1..247)
 #define DEFAULT_MODBUS_SPEED 19200
@@ -35,7 +35,7 @@
 #define DEFAULT_ANALOG_OUT_MODE 0x0501 // an1/an2: "1Int 2Pos" = 0x0501, "1Pos 2Int" = 0x0105, "1Int 2Int" = 0x0505, "1Pos 2Pos" = 0x0101
 #define DEFAULT_POSITION_OFFSET 250    // min 5, max 95 to avoid coincidence with pulse interrupts
 
-#define DEFAULT_FILTER_POSITION 6 // range 0 - 9999 ms (or nr of mirrors) for moving average
+#define DEFAULT_FILTER_POSITION 0 // range 0 - 9999 ms (or nr of mirrors) for moving average
 #define DEFAULT_FILTER_ON 0       // range 0 - 9999 ms
 #define DEFAULT_FILTER_OFF 0      // range 0 - 9999 ms
 
